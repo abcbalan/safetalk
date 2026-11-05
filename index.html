@@ -193,29 +193,39 @@
     }
 
     // --- APP INITIALIZATION ---
-    async function initApp() {
-      const { data: { session } } = await supabaseClient.auth.getSession();
-      if (!session) {
-        const email = prompt("Enter your SafeTalk email (e.g. dad@family.com, mum@family.com):", "dad@family.com");
-        const password = prompt("Enter your password:", "123456");
-        const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
-        if (error) { 
-          // If login fails, attempt auto signup for initial testing setup
-          const { data: signUpData, error: signUpErr } = await supabaseClient.auth.signUp({ email, password });
-          if (signUpErr) { alert("Login failed: " + signUpErr.message); return; }
-          currentUser = signUpData.user;
-        } else {
-          currentUser = data.user;
-        }
-      } else {
-        currentUser = session.user;
-      }
+async function initApp() {
+  // Check if already logged in
+  const { data: { session } } = await supabaseClient.auth.getSession();
+  if (session) {
+    currentUser = session.user;
+  } else {
+    // Attempt to sign in default family account
+    const { data, error } = await supabaseClient.auth.signInWithPassword({
+      email: 'dad@family.com',
+      password: '123456'
+    });
 
-      document.getElementById('currentUserBadge').innerText = `👤 ${currentUser.email.split('@')[0]}`;
-      renderFamilyList();
-      loadMessages();
-      subscribeToRealtime();
+    if (error) {
+      // If user doesn't exist yet, automatically create it
+      const { data: signUpData, error: signUpErr } = await supabaseClient.auth.signUp({
+        email: 'dad@family.com',
+        password: '123456'
+      });
+      if (signUpErr) {
+        alert("Setup error: " + signUpErr.message);
+        return;
+      }
+      currentUser = signUpData.user;
+    } else {
+      currentUser = data.user;
     }
+  }
+
+  document.getElementById('currentUserBadge').innerText = `👤 ${currentUser.email.split('@')[0]}`;
+  renderFamilyList();
+  loadMessages();
+  subscribeToRealtime();
+}
 
     function renderFamilyList() {
       const listContainer = document.getElementById('familyList');
