@@ -10,143 +10,174 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
-    .chat-bubble-me { background: #16a34a; color: white; border-bottom-right-radius: 2px; }
-    .chat-bubble-them { background: #ffffff; color: #1e293b; border-bottom-left-radius: 2px; border: 1px solid #e2e8f0; }
+    /* Signal-Style Clean Themes (Green Accent) */
+    .chat-bubble-me { background: #15803d; color: white; border-bottom-right-radius: 4px; }
+    .chat-bubble-them { background: #ffffff; color: #0f172a; border-bottom-left-radius: 4px; border: 1px solid #e2e8f0; }
+    .text-sm-custom { font-size: 0.875rem; }
+    .text-lg-custom { font-size: 1.05rem; }
+    .text-xl-custom { font-size: 1.25rem; }
+    
+    /* Custom Scrollbar for Signal feel */
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
   </style>
 </head>
-<body class="bg-slate-100 font-sans h-screen flex flex-col antialiased">
+<body id="appBody" class="bg-slate-100 font-sans h-screen flex flex-col antialiased text-sm-custom">
 
-  <!-- TOP HEADER -->
-  <header class="bg-slate-900 text-white px-4 py-3 flex items-center justify-between shadow-md">
+  <!-- TOP HEADER (SIGNAL GREEN STYLE) -->
+  <header class="bg-emerald-800 text-white px-4 py-2.5 flex items-center justify-between shadow-md shrink-0">
     <div class="flex items-center space-x-3">
-      <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-green-500 to-emerald-400 flex items-center justify-center font-bold text-slate-900 shadow">
-        <i class="fas fa-shield-halved text-white text-base"></i>
+      <div id="headerAvatar" class="w-9 h-9 rounded-full bg-emerald-600 flex items-center justify-center font-bold text-white shadow border border-emerald-500 text-sm">
+        <i class="fas fa-shield-halved"></i>
       </div>
       <div>
-        <h1 class="font-bold text-base leading-tight flex items-center gap-1.5" id="activeChatTitle">
+        <h1 class="font-bold text-base leading-tight flex items-center gap-2" id="activeChatTitle">
           SafeTalk Family Hub
-          <span class="bg-green-950 text-green-400 text-[10px] px-2 py-0.5 rounded-full border border-green-800 font-medium">Encrypted</span>
+          <span class="bg-emerald-950 text-emerald-300 text-[10px] px-2 py-0.5 rounded-full border border-emerald-700 font-medium">Encrypted</span>
         </h1>
-        <p class="text-[11px] text-slate-400" id="activeChatSub">All Family Members</p>
+        <p class="text-[11px] text-emerald-200" id="activeChatSub">All Family Members</p>
       </div>
     </div>
 
+    <!-- Right Controls: History Search & Settings -->
     <div class="flex items-center space-x-2">
-      <button onclick="requestNotificationPermission()" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 px-3 py-1.5 rounded-lg flex items-center space-x-1.5 transition">
-        <i class="fas fa-bell text-green-400"></i>
-        <span class="hidden sm:inline">Enable Push Alerts</span>
-      </button>
-      <div id="currentUserBadge" class="text-xs text-slate-300 bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-700 font-medium">
+      <!-- Search History Bar -->
+      <div class="relative hidden sm:block">
+        <input type="text" id="historySearchInput" oninput="filterMessageHistory()" placeholder="Search chat history..." class="bg-emerald-900 text-emerald-100 placeholder-emerald-400 text-xs px-3 py-1.5 pl-8 rounded-lg border border-emerald-700 focus:outline-none focus:ring-1 focus:ring-white">
+        <i class="fas fa-search absolute left-2.5 top-2 text-emerald-400 text-xs"></i>
+      </div>
+
+      <!-- Font Size Selector -->
+      <select id="fontSizeSelect" onchange="changeFontSize(this.value)" class="text-xs bg-emerald-900 text-emerald-100 border border-emerald-700 px-2 py-1.5 rounded-lg focus:outline-none">
+        <option value="sm">🔤 Normal</option>
+        <option value="lg">🔤 Large</option>
+        <option value="xl">🔤 XL Text</option>
+      </select>
+
+      <div id="currentUserBadge" class="text-xs text-emerald-100 bg-emerald-900 px-3 py-1.5 rounded-lg border border-emerald-700 font-medium">
         Connecting...
       </div>
     </div>
   </header>
 
-<!-- Change this: -->
-<!-- <div class="flex-1 flex overflow-hidden"> -->
+  <!-- MAIN SIGNAL APP LAYOUT -->
+  <div class="flex-1 flex flex-col md:flex-row overflow-hidden">
 
-<!-- To this (adds flex-col on mobile, row on desktop): -->
-<div class="flex-1 flex flex-col md:flex-row overflow-hidden">
-
-<!-- Change this: -->
-<!-- <aside class="w-64 bg-slate-800 text-slate-200 flex flex-col border-r border-slate-700 shrink-0"> -->
-
-<!-- To this (full width dropdown/hidden or compact on mobile, 64w on desktop): -->
-<aside class="w-full md:w-64 bg-slate-800 text-slate-200 flex flex-col border-r border-slate-700 shrink-0 max-h-48 md:max-h-none overflow-y-auto">
+    <!-- LEFT SIDEBAR: SIGNAL CONVERSATIONS LIST -->
+    <aside class="w-full md:w-80 bg-white border-r border-slate-200 flex flex-col shrink-0 max-h-56 md:max-h-none overflow-hidden">
       
       <!-- Group Rooms -->
-      <div class="p-3">
-        <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2 px-2">Family Discussions</div>
-        <button onclick="switchChat('group', null, 'SafeTalk Family Hub')" id="btn-group-all" class="w-full text-left px-3 py-2.5 rounded-xl bg-green-600 text-white font-semibold text-xs flex items-center space-x-2 shadow">
-          <i class="fas fa-users text-sm"></i>
-          <span>Family Group</span>
+      <div class="p-3 border-b border-slate-100 bg-slate-50">
+        <button onclick="switchChat('group', null, 'SafeTalk Family Hub')" id="btn-group-all" class="w-full text-left px-3.5 py-3 rounded-2xl bg-emerald-700 hover:bg-emerald-800 text-white font-semibold text-xs flex items-center space-x-3 shadow-sm transition">
+          <div class="w-8 h-8 rounded-full bg-emerald-600 flex items-center justify-center text-white font-bold shrink-0">
+            <i class="fas fa-users text-xs"></i>
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="font-bold truncate text-sm">Family Group</div>
+            <div class="text-[10px] text-emerald-200 truncate">Group discussion for everyone</div>
+          </div>
         </button>
       </div>
 
-      <!-- 1-to-1 Direct Contacts -->
-      <div class="p-3 flex-1 overflow-y-auto border-t border-slate-700">
-        <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2 px-2">Private 1-to-1</div>
-        <div id="familyList" class="space-y-1 text-xs">
-          <!-- Populated by JS -->
-        </div>
+      <!-- Direct Chats Section -->
+      <div class="p-3 pb-1 text-[10px] font-bold uppercase tracking-wider text-slate-400 bg-slate-50">Direct Messages</div>
+      <div id="familyList" class="flex-1 overflow-y-auto divide-y divide-slate-100">
+        <!-- Populated dynamically with Signal-style avatars -->
       </div>
 
-      <!-- Footer Info -->
-      <div class="p-3 border-t border-slate-700 text-[11px] text-slate-400 text-center">
-        Secured by <strong class="text-green-400">SafeTalk Engine</strong>
+      <!-- Sidebar Status Footer -->
+      <div class="p-2.5 border-t border-slate-200 bg-slate-50 text-[11px] text-slate-500 text-center flex items-center justify-center gap-1.5">
+        <span id="syncStatusIndicator" class="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span>
+        <span>SafeTalk Signal Engine</span>
       </div>
     </aside>
 
-    <!-- RIGHT: MAIN CHAT PANEL -->
-    <main class="flex-1 flex flex-col bg-slate-50 relative">
+    <!-- RIGHT MAIN CHAT AREA -->
+    <main class="flex-1 flex flex-col bg-slate-100 relative">
       
-      <!-- MESSAGES DISPLAY AREA -->
+      <!-- MOBILE SEARCH BAR (Shown on small screens) -->
+      <div class="p-2 bg-white border-b border-slate-200 sm:hidden">
+        <input type="text" id="mobileHistorySearch" oninput="filterMessageHistory()" placeholder="Search chat history..." class="w-full bg-slate-100 text-xs px-3 py-1.5 rounded-lg border border-slate-300 focus:outline-none">
+      </div>
+
+      <!-- MESSAGES DISPLAY AREA WITH TIMESTAMPS -->
       <div id="chatMessages" class="flex-1 p-4 overflow-y-auto space-y-3">
         <!-- Messages render dynamically -->
       </div>
 
-      <!-- CHAT INPUT & ATTACHMENT BAR -->
+      <!-- VOICE RECORDING PREVIEW BAR (Shows when recording voice) -->
+      <div id="voiceRecordingBar" class="hidden px-4 py-2 bg-emerald-50 border-t border-emerald-200 flex items-center justify-between">
+        <div class="flex items-center space-x-2">
+          <span class="w-3 h-3 rounded-full bg-red-500 animate-ping"></span>
+          <span class="text-xs font-bold text-slate-700" id="recordingTimer">Recording: 0s</span>
+        </div>
+        <button type="button" onclick="stopAndSendVoice()" class="px-3 py-1 bg-emerald-700 text-white text-xs rounded-lg font-bold shadow hover:bg-emerald-800">
+          <i class="fas fa-paper-plane mr-1"></i> Send Voice
+        </button>
+      </div>
+
+      <!-- EMOJI PICKER POPUP BAR -->
+      <div id="emojiPicker" class="hidden px-3 py-2 bg-white border-t border-slate-200 flex gap-2 flex-wrap text-lg shadow-inner">
+        <button type="button" onclick="insertEmoji('😊')">😊</button>
+        <button type="button" onclick="insertEmoji('❤️')">❤️</button>
+        <button type="button" onclick="insertEmoji('👍')">👍</button>
+        <button type="button" onclick="insertEmoji('😂')">😂</button>
+        <button type="button" onclick="insertEmoji('🎉')">🎉</button>
+        <button type="button" onclick="insertEmoji('🙏')">🙏</button>
+        <button type="button" onclick="insertEmoji('🔥')">🔥</button>
+        <button type="button" onclick="insertEmoji('⭐')">⭐</button>
+      </div>
+
+      <!-- SIGNAL INPUT & ATTACHMENT BAR -->
       <form onsubmit="sendMessage(event)" class="p-3 bg-white border-t border-slate-200 flex flex-col gap-2 shadow-lg">
         <div class="flex gap-2 items-center">
           
           <!-- Camera / Gallery Picker -->
-          <label class="p-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl cursor-pointer transition flex items-center justify-center shrink-0 shadow-sm" title="Take Live Photo or Select from Gallery">
-            <i class="fas fa-camera text-base text-slate-600"></i>
-            <input type="file" id="chatImageInput" accept="image/*" class="hidden" onchange="handleImageSelected(event)">
+          <label class="p-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-full cursor-pointer transition flex items-center justify-center shrink-0" title="Send Photo">
+            <i class="fas fa-camera text-base"></i>
+            <input type="file" id="chatImageInput" accept="image/*" capture="environment" class="hidden" onchange="handleImageSelected(event)">
           </label>
 
+          <!-- Voice Message Mic Button -->
+          <button type="button" id="micBtn" onclick="toggleVoiceRecording()" class="p-2.5 bg-slate-100 hover:bg-slate-200 text-emerald-700 rounded-full transition flex items-center justify-center shrink-0" title="Record Voice Message">
+            <i class="fas fa-microphone text-base"></i>
+          </button>
+
+          <!-- Emoji Picker Button -->
+          <button type="button" onclick="toggleEmojiPicker()" class="p-2.5 bg-slate-100 hover:bg-slate-200 text-amber-500 rounded-full transition flex items-center justify-center shrink-0" title="Insert Emoji">
+            <i class="fas fa-face-smile text-base"></i>
+          </button>
+
           <!-- Text Input Field -->
-          <input type="text" id="messageInput" placeholder="Type a secure message..." class="flex-1 px-4 py-2 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-500 bg-white">
+          <input type="text" id="messageInput" placeholder="Signal message..." class="flex-1 px-4 py-2 border border-slate-300 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600 bg-white">
           
           <!-- Retention Dropdown -->
-          <select id="retentionSelect" class="text-xs bg-slate-50 border border-slate-300 rounded-xl px-2.5 py-2 text-slate-700 focus:outline-none focus:ring-2 focus:ring-green-500 font-medium">
-            <option value="forever">⏳ Keep Forever</option>
-            <option value="1h">Auto Delete (1 Hour)</option>
-            <option value="24h">Auto Delete (24 Hours)</option>
-            <option value="7d">Auto Delete (1 Week)</option>
-            <option value="30d">Auto Delete (1 Month)</option>
+          <select id="retentionSelect" class="text-xs bg-slate-50 border border-slate-300 rounded-xl px-2 py-2 text-slate-700 focus:outline-none hidden sm:block">
+            <option value="forever">⏳ Keep</option>
+            <option value="24h">24 Hours</option>
+            <option value="7d">1 Week</option>
           </select>
 
           <!-- Send Button -->
-          <button type="submit" class="px-5 py-2 bg-green-600 hover:bg-green-700 text-white font-bold text-sm rounded-xl shadow transition flex items-center space-x-1.5 shrink-0">
-            <span>Send</span>
-            <i class="fas fa-paper-plane text-xs"></i>
+          <button type="submit" class="w-10 h-10 bg-emerald-700 hover:bg-emerald-800 text-white rounded-full shadow transition flex items-center justify-center shrink-0">
+            <i class="fas fa-paper-plane text-sm"></i>
           </button>
         </div>
       </form>
     </main>
   </div>
 
-  <!-- IMAGE COMPRESSION & PREVIEW MODAL -->
+  <!-- IMAGE PREVIEW MODAL -->
   <div id="imageModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
     <div class="bg-white w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden p-5 flex flex-col items-center">
       <h3 class="font-bold text-slate-900 text-sm mb-3">Send Photo via SafeTalk</h3>
-      
       <div class="w-full h-48 bg-slate-100 rounded-xl overflow-hidden mb-4 border border-slate-200">
         <img id="modalImagePreview" class="w-full h-full object-cover" src="" alt="Preview">
       </div>
-
-      <div class="w-full mb-4 text-xs space-y-2">
-        <label class="block font-semibold text-slate-700 mb-1">Quality Setting:</label>
-        <label class="flex items-center space-x-2.5 p-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 cursor-pointer transition">
-          <input type="radio" name="compressionOption" value="compressed" checked class="text-green-600 focus:ring-green-500">
-          <div>
-            <span class="font-bold text-slate-800">Optimized (Compress)</span>
-            <p class="text-[10px] text-slate-500">Fast upload, saves mobile data</p>
-          </div>
-        </label>
-        <label class="flex items-center space-x-2.5 p-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 cursor-pointer transition">
-          <input type="radio" name="compressionOption" value="original" class="text-green-600 focus:ring-green-500">
-          <div>
-            <span class="font-bold text-slate-800">Original Quality</span>
-            <p class="text-[10px] text-slate-500">Full resolution uncompressed file</p>
-          </div>
-        </label>
-      </div>
-
       <div class="flex gap-2 w-full">
-        <button onclick="closeImageModal()" class="flex-1 py-2.5 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-xs rounded-xl transition">Cancel</button>
-        <button onclick="confirmAndSendImage()" id="sendImageBtn" class="flex-1 py-2.5 bg-green-600 hover:bg-green-700 text-white font-bold text-xs rounded-xl shadow transition">Send Photo</button>
+        <button onclick="closeImageModal()" class="flex-1 py-2.5 bg-slate-200 text-slate-700 font-bold text-xs rounded-xl">Cancel</button>
+        <button onclick="confirmAndSendImage()" id="sendImageBtn" class="flex-1 py-2.5 bg-emerald-700 text-white font-bold text-xs rounded-xl shadow">Send Photo</button>
       </div>
     </div>
   </div>
@@ -157,40 +188,43 @@
   </div>
 
   <script>
-    // Configured with your Project URL and Publishable API Key
     const SUPABASE_URL = 'https://yigcsrhbsietdmdylooi.supabase.co';
     const SUPABASE_ANON_KEY = 'sb_publishable_fl7g8SR6zNJmo06dw4EB1Q_s8ee16Je';
     const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-    // Master Secret Key for local client encryption (Messages are encrypted before sending to DB)
     const SECRET_KEY = "SafeTalkFamilyKey2026";
 
     const familyMembers = [
-      { name: "Mum", email: "mum@family.com" },
-      { name: "Dad", email: "dad@family.com" },
-      { name: "Alex", email: "alex@family.com" },
-      { name: "Sarah", email: "sarah@family.com" }
+      { name: "Mum", email: "mum@family.com", icon: "fa-person-dress", bg: "bg-pink-600" },
+      { name: "Dad", email: "dad@family.com", icon: "fa-user-tie", bg: "bg-blue-600" },
+      { name: "Alex", email: "alex@family.com", icon: "fa-user-graduate", bg: "bg-amber-600" },
+      { name: "Sarah", email: "sarah@family.com", icon: "fa-child-reaching", bg: "bg-purple-600" }
     ];
 
     let currentUser = null;
     let currentChatType = 'group';
     let currentRecipientEmail = null;
     let selectedImageFile = null;
+    let allLoadedMessages = []; // Cached for history searching
 
-    // --- ENCRYPTION HELPERS ---
+    // Voice recording globals
+    let mediaRecorder = null;
+    let audioChunks = [];
+    let recordingTimerInterval = null;
+    let recordingSeconds = 0;
+
+    // --- ENCRYPTION & DECRYPTION ---
     function encryptText(text) {
-      if (text.startsWith('http')) return text; // Leave image URLs un-scrambled
+      if (text.startsWith('http') || text.startsWith('data:audio')) return text;
       return "ENC:" + btoa(text.split('').map((c, i) => 
         String.fromCharCode(c.charCodeAt(0) ^ SECRET_KEY.charCodeAt(i % SECRET_KEY.length))
       ).join(''));
     }
 
     function decryptText(cipherText) {
-      if (!cipherText.startsWith("ENC:")) return cipherText; // Return original if not encrypted
+      if (!cipherText.startsWith("ENC:")) return cipherText;
       try {
         const rawCipher = cipherText.replace("ENC:", "");
-        const decoded = atob(rawCipher);
-        return decoded.split('').map((c, i) => 
+        return atob(rawCipher).split('').map((c, i) => 
           String.fromCharCode(c.charCodeAt(0) ^ SECRET_KEY.charCodeAt(i % SECRET_KEY.length))
         ).join('');
       } catch(e) {
@@ -198,50 +232,55 @@
       }
     }
 
-    // --- APP INITIALIZATION ---
-async function initApp() {
-  const { data: { session } } = await supabaseClient.auth.getSession();
-  
-  if (!session) {
-    // Prompt for email and password when opening the app
-    const email = prompt("Enter your SafeTalk email (e.g. mum@family.com, alex@family.com):", "");
-    if (!email) return;
-    const password = prompt("Enter your password:", "");
-    if (!password) return;
+    // --- INITIALIZATION ---
+    async function initApp() {
+      const { data: { session } } = await supabaseClient.auth.getSession();
+      
+      if (!session) {
+        const email = prompt("Enter your SafeTalk email (mum@family.com, dad@family.com, alex@family.com, sarah@family.com):", "dad@family.com");
+        if (!email) return;
+        const password = prompt("Enter your password:", "123456");
+        if (!password) return;
 
-    const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
-    if (error) {
-      alert("Login failed: " + error.message);
-      location.reload(); // Refresh to try again
-      return;
+        const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+        if (error) { alert("Login failed: " + error.message); location.reload(); return; }
+        currentUser = data.user;
+      } else {
+        currentUser = session.user;
+      }
+
+      setupUserInterface();
+      renderFamilyList();
+      loadMessages();
+      subscribeToRealtime();
+      setupPasteListener();
     }
-    currentUser = data.user;
-  } else {
-    currentUser = session.user;
-  }
 
-  document.getElementById('currentUserBadge').innerText = `👤 ${currentUser.email.split('@')[0]}`;
-  renderFamilyList();
-  loadMessages();
-  subscribeToRealtime();
-}
+    function setupUserInterface() {
+      const member = familyMembers.find(m => m.email === currentUser.email) || { name: currentUser.email.split('@')[0], icon: "fa-user", bg: "bg-emerald-600" };
+      document.getElementById('currentUserBadge').innerText = `👤 ${member.name}`;
+      document.getElementById('headerAvatar').innerHTML = `<i class="fas ${member.icon}"></i>`;
+      document.getElementById('headerAvatar').className = `w-9 h-9 rounded-full ${member.bg} flex items-center justify-center font-bold text-white shadow border border-emerald-500 text-sm`;
+    }
 
     function renderFamilyList() {
       const listContainer = document.getElementById('familyList');
       listContainer.innerHTML = '';
       familyMembers.forEach(member => {
         if (member.email !== currentUser.email) {
-          const btn = document.createElement('button');
-          btn.className = `w-full text-left px-3 py-2 rounded-xl hover:bg-slate-700 transition flex items-center justify-between text-slate-200`;
-          btn.onclick = () => switchChat('direct', member.email, member.name);
-          btn.innerHTML = `
-            <span class="flex items-center space-x-2 font-medium">
-              <i class="fas fa-user-circle text-slate-400 text-sm"></i>
-              <span>${member.name}</span>
-            </span>
-            <span class="text-[9px] bg-slate-900 text-slate-400 px-1.5 py-0.5 rounded">1-to-1</span>
+          const div = document.createElement('div');
+          div.className = `p-3 hover:bg-slate-50 cursor-pointer transition flex items-center space-x-3`;
+          div.onclick = () => switchChat('direct', member.email, member.name);
+          div.innerHTML = `
+            <div class="w-10 h-10 rounded-full ${member.bg} flex items-center justify-center text-white font-bold text-sm shrink-0">
+              <i class="fas ${member.icon}"></i>
+            </div>
+            <div class="flex-1 min-w-0">
+              <div class="font-semibold text-slate-800 text-sm truncate">${member.name}</div>
+              <div class="text-[11px] text-slate-400 truncate">Tap to send encrypted 1-to-1</div>
+            </div>
           `;
-          listContainer.appendChild(btn);
+          listContainer.appendChild(div);
         }
       });
     }
@@ -250,16 +289,16 @@ async function initApp() {
       currentChatType = type;
       currentRecipientEmail = recipientEmail;
       document.getElementById('activeChatTitle').innerText = type === 'group' ? "SafeTalk Family Hub" : `Chat with ${name}`;
-      document.getElementById('activeChatSub').innerText = type === 'group' ? "All Family Members" : `Private 1-to-1 Conversation`;
+      document.getElementById('activeChatSub').innerText = type === 'group' ? "All Family Members" : `Private Direct Message`;
       loadMessages();
     }
 
+    // --- MESSAGES & SEARCH HISTORY ---
     async function loadMessages() {
       const chatContainer = document.getElementById('chatMessages');
-      chatContainer.innerHTML = '<div class="text-center text-xs text-slate-400 py-4"><i class="fas fa-spinner fa-spin mr-1"></i> Loading SafeTalk messages...</div>';
+      chatContainer.innerHTML = '<div class="text-center text-xs text-slate-400 py-4"><i class="fas fa-spinner fa-spin mr-1"></i> Loading messages...</div>';
 
       let query = supabaseClient.from('messages').select('*');
-
       if (currentChatType === 'group') {
         query = query.eq('channel_type', 'group');
       } else {
@@ -270,28 +309,133 @@ async function initApp() {
       const { data, error } = await query.order('created_at', { ascending: true });
       if (error) { console.error("Error loading messages:", error); return; }
 
-      chatContainer.innerHTML = '';
-      const nowIso = new Date().toISOString();
+      allLoadedMessages = data || [];
+      renderFilteredMessages(allLoadedMessages);
+    }
 
-      (data || []).forEach(msg => {
-        if (!msg.expires_at || msg.expires_at > nowIso) {
-          renderSingleMessage(msg);
-        }
+    function filterMessageHistory() {
+      const query = (document.getElementById('historySearchInput').value || document.getElementById('mobileHistorySearch').value || '').toLowerCase();
+      if (!query) {
+        renderFilteredMessages(allLoadedMessages);
+        return;
+      }
+      const filtered = allLoadedMessages.filter(msg => {
+        const text = msg.message_text.startsWith('http') ? '' : decryptText(msg.message_text).toLowerCase();
+        return text.includes(query) || msg.sender_name.toLowerCase().includes(query);
       });
+      renderFilteredMessages(filtered);
+    }
+
+    function renderFilteredMessages(messages) {
+      const chatContainer = document.getElementById('chatMessages');
+      chatContainer.innerHTML = '';
+      messages.forEach(msg => renderSingleMessage(msg));
       scrollToBottom();
     }
 
-    function computeExpiryTimestamp() {
-      const retentionVal = document.getElementById('retentionSelect').value;
-      if (retentionVal === 'forever') return null;
+    function formatTimestamp(isoString) {
+      if (!isoString) return '';
+      const date = new Date(isoString);
       const now = new Date();
-      if (retentionVal === '1h') now.setHours(now.getHours() + 1);
-      else if (retentionVal === '24h') now.setHours(now.getHours() + 24);
-      else if (retentionVal === '7d') now.setDate(now.getDate() + 7);
-      else if (retentionVal === '30d') now.setDate(now.getDate() + 30);
-      return now.toISOString();
+      const isToday = date.toDateString() === now.toDateString();
+      const timeStr = date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      return isToday ? `Today at ${timeStr}` : `${date.toLocaleDateString([], { month: 'short', day: 'numeric' })}, ${timeStr}`;
     }
 
+    function renderSingleMessage(msg) {
+      const chatContainer = document.getElementById('chatMessages');
+      const isMe = msg.sender_email === currentUser.email;
+      const isImage = msg.message_text.startsWith('http') && !msg.message_text.includes('.webm') && !msg.message_text.includes('.mp3');
+      const isVoice = msg.message_text.startsWith('data:audio') || msg.message_text.includes('.webm') || msg.message_text.includes('.mp3');
+      
+      const displayText = (isImage || isVoice) ? msg.message_text : decryptText(msg.message_text);
+      const timeTag = formatTimestamp(msg.created_at);
+
+      const wrapper = document.createElement('div');
+      wrapper.className = `flex flex-col ${isMe ? 'items-end' : 'items-start'} mb-2`;
+
+      let contentHtml = '';
+      if (isImage) {
+        contentHtml = `<img src="${displayText}" onclick="openLightbox('${displayText}')" class="rounded-xl max-w-xs max-h-64 object-cover cursor-pointer hover:opacity-90 shadow">`;
+      } else if (isVoice) {
+        contentHtml = `
+          <div class="flex items-center space-x-2 py-1">
+            <i class="fas fa-play text-emerald-600 text-xs cursor-pointer" onclick="this.nextElementSibling.play()"></i>
+            <audio controls src="${displayText}" class="h-8 max-w-[200px]"></audio>
+          </div>
+        `;
+      } else {
+        contentHtml = `<div>${displayText}</div>`;
+      }
+
+      wrapper.innerHTML = `
+        <span class="text-[10px] text-slate-400 mb-0.5 px-1">${isMe ? 'You' : msg.sender_name} • ${timeTag}</span>
+        <div class="max-w-[80%] px-3.5 py-2.5 rounded-2xl shadow-sm ${isMe ? 'chat-bubble-me' : 'chat-bubble-them'}">
+          ${contentHtml}
+        </div>
+      `;
+
+      chatContainer.appendChild(wrapper);
+      scrollToBottom();
+    }
+
+    // --- VOICE MESSAGING ---
+    async function toggleVoiceRecording() {
+      const bar = document.getElementById('voiceRecordingBar');
+      if (mediaRecorder && mediaRecorder.state === 'recording') {
+        stopAndSendVoice();
+        return;
+      }
+
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        mediaRecorder = new MediaRecorder(stream);
+        audioChunks = [];
+
+        mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+        mediaRecorder.start();
+
+        recordingSeconds = 0;
+        bar.classList.remove('hidden');
+        recordingTimerInterval = setInterval(() => {
+          recordingSeconds++;
+          document.getElementById('recordingTimer').innerText = `Recording: ${recordingSeconds}s`;
+        }, 1000);
+      } catch (err) {
+        alert("Microphone access is required for voice messages.");
+      }
+    }
+
+    function stopAndSendVoice() {
+      if (!mediaRecorder) return;
+      mediaRecorder.stop();
+      clearInterval(recordingTimerInterval);
+      document.getElementById('voiceRecordingBar').classList.add('hidden');
+
+      mediaRecorder.onstop = async () => {
+        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+        const reader = new FileReader();
+        reader.readAsDataURL(audioBlob);
+        reader.onloadend = async () => {
+          const base64Audio = reader.result;
+          const senderName = familyMembers.find(m => m.email === currentUser.email)?.name || currentUser.email.split('@')[0];
+
+          const newMessage = {
+            sender_email: currentUser.email,
+            sender_name: senderName,
+            message_text: base64Audio,
+            channel_type: currentChatType,
+            recipient_email: currentRecipientEmail,
+            created_at: new Date().toISOString()
+          };
+
+          await supabaseClient.from('messages').insert([newMessage]);
+          loadMessages();
+        };
+      };
+    }
+
+    // --- SENDING MESSAGES ---
     async function sendMessage(e) {
       e.preventDefault();
       const input = document.getElementById('messageInput');
@@ -299,22 +443,23 @@ async function initApp() {
       if (!text) return;
 
       input.value = '';
-      
-      // Encrypt raw text before sending to Supabase
       const cipherText = encryptText(text);
+      const senderName = familyMembers.find(m => m.email === currentUser.email)?.name || currentUser.email.split('@')[0];
 
       const newMessage = {
         sender_email: currentUser.email,
-        sender_name: currentUser.email.split('@')[0],
+        sender_name: senderName,
         message_text: cipherText,
         channel_type: currentChatType,
         recipient_email: currentRecipientEmail,
-        expires_at: computeExpiryTimestamp()
+        created_at: new Date().toISOString()
       };
 
       await supabaseClient.from('messages').insert([newMessage]);
+      loadMessages();
     }
 
+    // --- IMAGE HANDLING & UTILS ---
     function handleImageSelected(e) {
       const file = e.target.files[0];
       if (!file) return;
@@ -326,29 +471,6 @@ async function initApp() {
     function closeImageModal() {
       document.getElementById('imageModal').classList.add('hidden');
       selectedImageFile = null;
-      document.getElementById('chatImageInput').value = '';
-    }
-
-    async function compressImageFile(file, maxWidth = 1000, quality = 0.7) {
-      return new Promise((resolve) => {
-        const reader = new FileReader();
-        reader.readAsDataURL(file);
-        reader.onload = (event) => {
-          const img = new Image();
-          img.src = event.target.result;
-          img.onload = () => {
-            const canvas = document.createElement('canvas');
-            let width = img.width, height = img.height;
-            if (width > maxWidth) { height = Math.round((height * maxWidth) / width); width = maxWidth; }
-            canvas.width = width; canvas.height = height;
-            const ctx = canvas.getContext('2d');
-            ctx.drawImage(img, 0, 0, width, height);
-            canvas.toBlob((blob) => {
-              resolve(new File([blob], file.name.replace(/\.[^/.]+$/, ".jpg"), { type: 'image/jpeg' }));
-            }, 'image/jpeg', quality);
-          };
-        };
-      });
     }
 
     async function confirmAndSendImage() {
@@ -356,106 +478,61 @@ async function initApp() {
       const sendBtn = document.getElementById('sendImageBtn');
       sendBtn.disabled = true; sendBtn.innerText = "Uploading...";
 
-      const compressionChoice = document.querySelector('input[name="compressionOption"]:checked').value;
-      const fileToUpload = compressionChoice === 'compressed' ? await compressImageFile(selectedImageFile) : selectedImageFile;
-
       const fileName = `safetalk_${Date.now()}_${Math.random()}.jpg`;
-      const filePath = `chat-photos/${fileName}`;
+      const filePath = `car-photos/${fileName}`;
 
-      const { error: uploadError } = await supabaseClient.storage.from('car-photos').upload(filePath, fileToUpload);
+      const { error: uploadError } = await supabaseClient.storage.from('car-photos').upload(filePath, selectedImageFile);
       if (uploadError) { alert("Upload error: " + uploadError.message); sendBtn.disabled = false; sendBtn.innerText = "Send Photo"; return; }
 
       const { data: publicUrlData } = supabaseClient.storage.from('car-photos').getPublicUrl(filePath);
+      const senderName = familyMembers.find(m => m.email === currentUser.email)?.name || currentUser.email.split('@')[0];
 
       const newMessage = {
         sender_email: currentUser.email,
-        sender_name: currentUser.email.split('@')[0],
+        sender_name: senderName,
         message_text: publicUrlData.publicUrl,
         channel_type: currentChatType,
         recipient_email: currentRecipientEmail,
-        expires_at: computeExpiryTimestamp()
+        created_at: new Date().toISOString()
       };
 
       await supabaseClient.from('messages').insert([newMessage]);
       closeImageModal();
       sendBtn.disabled = false; sendBtn.innerText = "Send Photo";
+      loadMessages();
     }
 
-    function renderSingleMessage(msg) {
-      const chatContainer = document.getElementById('chatMessages');
-      const isMe = msg.sender_email === currentUser.email;
-      const isImage = msg.message_text.startsWith('http');
-      
-      const displayText = isImage ? msg.message_text : decryptText(msg.message_text);
-
-      const wrapper = document.createElement('div');
-      wrapper.className = `flex flex-col ${isMe ? 'items-end' : 'items-start'}`;
-
-      const contentHtml = isImage
-        ? `<img src="${displayText}" onclick="openLightbox('${displayText}')" class="rounded-xl max-w-xs max-h-64 object-cover cursor-pointer hover:opacity-90 transition shadow">`
-        : `<div>${displayText}</div>`;
-
-      wrapper.innerHTML = `
-        <span class="text-[10px] text-slate-400 mb-0.5 px-1">${isMe ? 'You' : msg.sender_name}</span>
-        <div class="max-w-[80%] p-3 rounded-2xl text-xs shadow-sm ${isMe ? 'chat-bubble-me' : 'chat-bubble-them'}">
-          ${contentHtml}
-        </div>
-      `;
-
-      chatContainer.appendChild(wrapper);
-      scrollToBottom();
+    function setupPasteListener() {
+      window.addEventListener('paste', (e) => {
+        const items = (e.clipboardData || e.originalEvent.clipboardData).items;
+        for (let item of items) {
+          if (item.kind === 'file' && item.type.startsWith('image/')) {
+            selectedImageFile = item.getAsFile();
+            document.getElementById('modalImagePreview').src = URL.createObjectURL(selectedImageFile);
+            document.getElementById('imageModal').classList.remove('hidden');
+          }
+        }
+      });
     }
 
-    function playNotificationSound() {
-      try {
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        const osc = audioCtx.createOscillator();
-        const gain = audioCtx.createGain();
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(587.33, audioCtx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(880, audioCtx.currentTime + 0.15);
-        gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
-        osc.connect(gain); gain.connect(audioCtx.destination);
-        osc.start(); osc.stop(audioCtx.currentTime + 0.3);
-      } catch (e) {}
+    function toggleEmojiPicker() {
+      document.getElementById('emojiPicker').classList.toggle('hidden');
     }
 
-    function requestNotificationPermission() {
-      if ("Notification" in window) {
-        Notification.requestPermission().then(perm => {
-          if (perm === "granted") alert("SafeTalk notifications enabled!");
-        });
-      }
+    function insertEmoji(emoji) {
+      const input = document.getElementById('messageInput');
+      input.value += emoji;
+      input.focus();
     }
 
-    function showDesktopNotification(sender, text) {
-      if ("Notification" in window && Notification.permission === "granted" && sender !== currentUser.email) {
-        const clearText = text.startsWith('http') ? '📸 Shared a photo' : decryptText(text);
-        new Notification(`SafeTalk: ${sender}`, {
-          body: clearText,
-          icon: 'https://cdn-icons-png.flaticon.com/512/3077/3077361.png'
-        });
-      }
+    function changeFontSize(size) {
+      document.getElementById('appBody').className = `bg-slate-100 font-sans h-screen flex flex-col antialiased text-${size}-custom`;
     }
 
     function subscribeToRealtime() {
       supabaseClient
         .channel('public:messages')
-        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, payload => {
-          const newMsg = payload.new;
-          if (currentChatType === 'group' && newMsg.channel_type === 'group') {
-            renderSingleMessage(newMsg);
-            if (newMsg.sender_email !== currentUser.email) { playNotificationSound(); showDesktopNotification(newMsg.sender_name, newMsg.message_text); }
-          } else if (
-            currentChatType === 'direct' && newMsg.channel_type === 'direct' &&
-            ((newMsg.sender_email === currentUser.email && newMsg.recipient_email === currentRecipientEmail) ||
-             (newMsg.sender_email === currentRecipientEmail && newMsg.recipient_email === currentUser.email))
-          ) {
-            renderSingleMessage(newMsg);
-            if (newMsg.sender_email !== currentUser.email) { playNotificationSound(); showDesktopNotification(newMsg.sender_name, newMsg.message_text); }
-          }
-        })
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, () => loadMessages())
         .subscribe();
     }
 
