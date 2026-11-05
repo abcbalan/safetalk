@@ -1,0 +1,470 @@
+<!-- Testing -->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SafeTalk - Private Family Messenger</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    .chat-bubble-me { background: #16a34a; color: white; border-bottom-right-radius: 2px; }
+    .chat-bubble-them { background: #ffffff; color: #1e293b; border-bottom-left-radius: 2px; border: 1px solid #e2e8f0; }
+  </style>
+</head>
+<body class="bg-slate-100 font-sans h-screen flex flex-col antialiased">
+
+  <!-- TOP HEADER -->
+  <header class="bg-slate-900 text-white px-4 py-3 flex items-center justify-between shadow-md">
+    <div class="flex items-center space-x-3">
+      <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-green-500 to-emerald-400 flex items-center justify-center font-bold text-slate-900 shadow">
+        <i class="fas fa-shield-halved text-white text-base"></i>
+      </div>
+      <div>
+        <h1 class="font-bold text-base leading-tight flex items-center gap-1.5" id="activeChatTitle">
+          SafeTalk Family Hub
+          <span class="bg-green-950 text-green-400 text-[10px] px-2 py-0.5 rounded-full border border-green-800 font-medium">Encrypted</span>
+        </h1>
+        <p class="text-[11px] text-slate-400" id="activeChatSub">All Family Members</p>
+      </div>
+    </div>
+
+    <div class="flex items-center space-x-2">
+      <button onclick="requestNotificationPermission()" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 px-3 py-1.5 rounded-lg flex items-center space-x-1.5 transition">
+        <i class="fas fa-bell text-green-400"></i>
+        <span class="hidden sm:inline">Enable Push Alerts</span>
+      </button>
+      <div id="currentUserBadge" class="text-xs text-slate-300 bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-700 font-medium">
+        Connecting...
+      </div>
+    </div>
+  </header>
+
+  <!-- MAIN APP CONTAINER -->
+  <div class="flex-1 flex overflow-hidden">
+
+    <!-- LEFT SIDEBAR -->
+    <aside class="w-64 bg-slate-800 text-slate-200 flex flex-col border-r border-slate-700 shrink-0">
+      
+      <!-- Group Rooms -->
+      <div class="p-3">
+        <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2 px-2">Family Discussions</div>
+        <button onclick="switchChat('group', null, 'SafeTalk Family Hub')" id="btn-group-all" class="w-full text-left px-3 py-2.5 rounded-xl bg-green-600 text-white font-semibold text-xs flex items-center space-x-2 shadow">
+          <i class="fas fa-users text-sm"></i>
+          <span>Family Group</span>
+        </button>
+      </div>
+
+      <!-- 1-to-1 Direct Contacts -->
+      <div class="p-3 flex-1 overflow-y-auto border-t border-slate-700">
+        <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-2 px-2">Private 1-to-1</div>
+        <div id="familyList" class="space-y-1 text-xs">
+          <!-- Populated by JS -->
+        </div>
+      </div>
+
+      <!-- Footer Info -->
+      <div class="p-3 border-t border-slate-700 text-[11px] text-slate-400 text-center">
+        Secured by <strong class="text-green-400">SafeTalk Engine</strong>
+      </div>
+    </aside>
+
+    <!-- RIGHT: MAIN CHAT PANEL -->
+    <main class="flex-1 flex flex-col bg-slate-50 relative">
+      
+      <!-- MESSAGES DISPLAY AREA -->
+      <div id="chatMessages" class="flex-1 p-4 overflow-y-auto space-y-3">
+        <!-- Messages render dynamically -->
+      </div>
+
+      <!-- CHAT INPUT & ATTACHMENT BAR -->
+      <form onsubmit="sendMessage(event)" class="p-3 bg-white border-t border-slate-200 flex flex-col gap-2 shadow-lg">
+        <div class="flex gap-2 items-center">
+          
+          <!-- Camera / Gallery Picker -->
+          <label class="p-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl cursor-pointer transition flex items-center justify-center shrink-0 shadow-sm" title="Take Live Photo or Select from Gallery">
+            <i class="fas fa-camera text-base text-slate-600"></i>
+            <input type="file" id="chatImageInput" accept="image/*" class="hidden" onchange="handleImageSelected(event)">
+          </label>
+
+          <!-- Text Input Field -->
+          <input type="text" id="messageInput" placeholder="Type a secure message..." class="flex-1 px-4 py-2 border border-slate-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-500 bg-white">
+          
+          <!-- Retention Dropdown -->
+          <select id="retentionSelect" class="text-xs bg-slate-50 border border-slate-300 rounded-xl px-2.5 py-2 text-slate-700 focus:outline-none focus:ring-2 focus:ring-green-500 font-medium">
+            <option value="forever">⏳ Keep Forever</option>
+            <option value="1h">Auto Delete (1 Hour)</option>
+            <option value="24h">Auto Delete (24 Hours)</option>
+            <option value="7d">Auto Delete (1 Week)</option>
+            <option value="30d">Auto Delete (1 Month)</option>
+          </select>
+
+          <!-- Send Button -->
+          <button type="submit" class="px-5 py-2 bg-green-600 hover:bg-green-700 text-white font-bold text-sm rounded-xl shadow transition flex items-center space-x-1.5 shrink-0">
+            <span>Send</span>
+            <i class="fas fa-paper-plane text-xs"></i>
+          </button>
+        </div>
+      </form>
+    </main>
+  </div>
+
+  <!-- IMAGE COMPRESSION & PREVIEW MODAL -->
+  <div id="imageModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
+    <div class="bg-white w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden p-5 flex flex-col items-center">
+      <h3 class="font-bold text-slate-900 text-sm mb-3">Send Photo via SafeTalk</h3>
+      
+      <div class="w-full h-48 bg-slate-100 rounded-xl overflow-hidden mb-4 border border-slate-200">
+        <img id="modalImagePreview" class="w-full h-full object-cover" src="" alt="Preview">
+      </div>
+
+      <div class="w-full mb-4 text-xs space-y-2">
+        <label class="block font-semibold text-slate-700 mb-1">Quality Setting:</label>
+        <label class="flex items-center space-x-2.5 p-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 cursor-pointer transition">
+          <input type="radio" name="compressionOption" value="compressed" checked class="text-green-600 focus:ring-green-500">
+          <div>
+            <span class="font-bold text-slate-800">Optimized (Compress)</span>
+            <p class="text-[10px] text-slate-500">Fast upload, saves mobile data</p>
+          </div>
+        </label>
+        <label class="flex items-center space-x-2.5 p-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 cursor-pointer transition">
+          <input type="radio" name="compressionOption" value="original" class="text-green-600 focus:ring-green-500">
+          <div>
+            <span class="font-bold text-slate-800">Original Quality</span>
+            <p class="text-[10px] text-slate-500">Full resolution uncompressed file</p>
+          </div>
+        </label>
+      </div>
+
+      <div class="flex gap-2 w-full">
+        <button onclick="closeImageModal()" class="flex-1 py-2.5 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-xs rounded-xl transition">Cancel</button>
+        <button onclick="confirmAndSendImage()" id="sendImageBtn" class="flex-1 py-2.5 bg-green-600 hover:bg-green-700 text-white font-bold text-xs rounded-xl shadow transition">Send Photo</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- FULLSCREEN LIGHTBOX -->
+  <div id="lightboxModal" class="fixed inset-0 bg-black/90 hidden z-50 flex items-center justify-center p-4" onclick="closeLightbox()">
+    <img id="lightboxImg" class="max-w-full max-h-full rounded-lg shadow-2xl object-contain">
+  </div>
+
+  <script>
+    // Configured with your Project URL and Publishable API Key
+    const SUPABASE_URL = 'https://idapulgrzglnadbpzhpv.supabase.co';
+    const SUPABASE_ANON_KEY = 'sb_publishable_fl7g8SR6zNJmo06dw4EB1Q_s8ee16Je';
+    const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    // Master Secret Key for local client encryption (Messages are encrypted before sending to DB)
+    const SECRET_KEY = "SafeTalkFamilyKey2026";
+
+    const familyMembers = [
+      { name: "Mum", email: "mum@family.com" },
+      { name: "Dad", email: "dad@family.com" },
+      { name: "Alex", email: "alex@family.com" },
+      { name: "Sarah", email: "sarah@family.com" }
+    ];
+
+    let currentUser = null;
+    let currentChatType = 'group';
+    let currentRecipientEmail = null;
+    let selectedImageFile = null;
+
+    // --- ENCRYPTION HELPERS ---
+    function encryptText(text) {
+      if (text.startsWith('http')) return text; // Leave image URLs un-scrambled
+      return "ENC:" + btoa(text.split('').map((c, i) => 
+        String.fromCharCode(c.charCodeAt(0) ^ SECRET_KEY.charCodeAt(i % SECRET_KEY.length))
+      ).join(''));
+    }
+
+    function decryptText(cipherText) {
+      if (!cipherText.startsWith("ENC:")) return cipherText; // Return original if not encrypted
+      try {
+        const rawCipher = cipherText.replace("ENC:", "");
+        const decoded = atob(rawCipher);
+        return decoded.split('').map((c, i) => 
+          String.fromCharCode(c.charCodeAt(0) ^ SECRET_KEY.charCodeAt(i % SECRET_KEY.length))
+        ).join('');
+      } catch(e) {
+        return cipherText;
+      }
+    }
+
+    // --- APP INITIALIZATION ---
+    async function initApp() {
+      const { data: { session } } = await supabaseClient.auth.getSession();
+      if (!session) {
+        const email = prompt("Enter your SafeTalk email (e.g. dad@family.com, mum@family.com):", "dad@family.com");
+        const password = prompt("Enter your password:", "123456");
+        const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+        if (error) { 
+          // If login fails, attempt auto signup for initial testing setup
+          const { data: signUpData, error: signUpErr } = await supabaseClient.auth.signUp({ email, password });
+          if (signUpErr) { alert("Login failed: " + signUpErr.message); return; }
+          currentUser = signUpData.user;
+        } else {
+          currentUser = data.user;
+        }
+      } else {
+        currentUser = session.user;
+      }
+
+      document.getElementById('currentUserBadge').innerText = `👤 ${currentUser.email.split('@')[0]}`;
+      renderFamilyList();
+      loadMessages();
+      subscribeToRealtime();
+    }
+
+    function renderFamilyList() {
+      const listContainer = document.getElementById('familyList');
+      listContainer.innerHTML = '';
+      familyMembers.forEach(member => {
+        if (member.email !== currentUser.email) {
+          const btn = document.createElement('button');
+          btn.className = `w-full text-left px-3 py-2 rounded-xl hover:bg-slate-700 transition flex items-center justify-between text-slate-200`;
+          btn.onclick = () => switchChat('direct', member.email, member.name);
+          btn.innerHTML = `
+            <span class="flex items-center space-x-2 font-medium">
+              <i class="fas fa-user-circle text-slate-400 text-sm"></i>
+              <span>${member.name}</span>
+            </span>
+            <span class="text-[9px] bg-slate-900 text-slate-400 px-1.5 py-0.5 rounded">1-to-1</span>
+          `;
+          listContainer.appendChild(btn);
+        }
+      });
+    }
+
+    function switchChat(type, recipientEmail, name) {
+      currentChatType = type;
+      currentRecipientEmail = recipientEmail;
+      document.getElementById('activeChatTitle').innerText = type === 'group' ? "SafeTalk Family Hub" : `Chat with ${name}`;
+      document.getElementById('activeChatSub').innerText = type === 'group' ? "All Family Members" : `Private 1-to-1 Conversation`;
+      loadMessages();
+    }
+
+    async function loadMessages() {
+      const chatContainer = document.getElementById('chatMessages');
+      chatContainer.innerHTML = '<div class="text-center text-xs text-slate-400 py-4"><i class="fas fa-spinner fa-spin mr-1"></i> Loading SafeTalk messages...</div>';
+
+      let query = supabaseClient.from('messages').select('*');
+
+      if (currentChatType === 'group') {
+        query = query.eq('channel_type', 'group');
+      } else {
+        query = query.eq('channel_type', 'direct')
+          .or(`and(sender_email.eq.${currentUser.email},recipient_email.eq.${currentRecipientEmail}),and(sender_email.eq.${currentRecipientEmail},recipient_email.eq.${currentUser.email})`);
+      }
+
+      const { data, error } = await query.order('created_at', { ascending: true });
+      if (error) { console.error("Error loading messages:", error); return; }
+
+      chatContainer.innerHTML = '';
+      const nowIso = new Date().toISOString();
+
+      (data || []).forEach(msg => {
+        if (!msg.expires_at || msg.expires_at > nowIso) {
+          renderSingleMessage(msg);
+        }
+      });
+      scrollToBottom();
+    }
+
+    function computeExpiryTimestamp() {
+      const retentionVal = document.getElementById('retentionSelect').value;
+      if (retentionVal === 'forever') return null;
+      const now = new Date();
+      if (retentionVal === '1h') now.setHours(now.getHours() + 1);
+      else if (retentionVal === '24h') now.setHours(now.getHours() + 24);
+      else if (retentionVal === '7d') now.setDate(now.getDate() + 7);
+      else if (retentionVal === '30d') now.setDate(now.getDate() + 30);
+      return now.toISOString();
+    }
+
+    async function sendMessage(e) {
+      e.preventDefault();
+      const input = document.getElementById('messageInput');
+      const text = input.value.trim();
+      if (!text) return;
+
+      input.value = '';
+      
+      // Encrypt raw text before sending to Supabase
+      const cipherText = encryptText(text);
+
+      const newMessage = {
+        sender_email: currentUser.email,
+        sender_name: currentUser.email.split('@')[0],
+        message_text: cipherText,
+        channel_type: currentChatType,
+        recipient_email: currentRecipientEmail,
+        expires_at: computeExpiryTimestamp()
+      };
+
+      await supabaseClient.from('messages').insert([newMessage]);
+    }
+
+    function handleImageSelected(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      selectedImageFile = file;
+      document.getElementById('modalImagePreview').src = URL.createObjectURL(file);
+      document.getElementById('imageModal').classList.remove('hidden');
+    }
+
+    function closeImageModal() {
+      document.getElementById('imageModal').classList.add('hidden');
+      selectedImageFile = null;
+      document.getElementById('chatImageInput').value = '';
+    }
+
+    async function compressImageFile(file, maxWidth = 1000, quality = 0.7) {
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = (event) => {
+          const img = new Image();
+          img.src = event.target.result;
+          img.onload = () => {
+            const canvas = document.createElement('canvas');
+            let width = img.width, height = img.height;
+            if (width > maxWidth) { height = Math.round((height * maxWidth) / width); width = maxWidth; }
+            canvas.width = width; canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, width, height);
+            canvas.toBlob((blob) => {
+              resolve(new File([blob], file.name.replace(/\.[^/.]+$/, ".jpg"), { type: 'image/jpeg' }));
+            }, 'image/jpeg', quality);
+          };
+        };
+      });
+    }
+
+    async function confirmAndSendImage() {
+      if (!selectedImageFile) return;
+      const sendBtn = document.getElementById('sendImageBtn');
+      sendBtn.disabled = true; sendBtn.innerText = "Uploading...";
+
+      const compressionChoice = document.querySelector('input[name="compressionOption"]:checked').value;
+      const fileToUpload = compressionChoice === 'compressed' ? await compressImageFile(selectedImageFile) : selectedImageFile;
+
+      const fileName = `safetalk_${Date.now()}_${Math.random()}.jpg`;
+      const filePath = `chat-photos/${fileName}`;
+
+      const { error: uploadError } = await supabaseClient.storage.from('car-photos').upload(filePath, fileToUpload);
+      if (uploadError) { alert("Upload error: " + uploadError.message); sendBtn.disabled = false; sendBtn.innerText = "Send Photo"; return; }
+
+      const { data: publicUrlData } = supabaseClient.storage.from('car-photos').getPublicUrl(filePath);
+
+      const newMessage = {
+        sender_email: currentUser.email,
+        sender_name: currentUser.email.split('@')[0],
+        message_text: publicUrlData.publicUrl,
+        channel_type: currentChatType,
+        recipient_email: currentRecipientEmail,
+        expires_at: computeExpiryTimestamp()
+      };
+
+      await supabaseClient.from('messages').insert([newMessage]);
+      closeImageModal();
+      sendBtn.disabled = false; sendBtn.innerText = "Send Photo";
+    }
+
+    function renderSingleMessage(msg) {
+      const chatContainer = document.getElementById('chatMessages');
+      const isMe = msg.sender_email === currentUser.email;
+      const isImage = msg.message_text.startsWith('http');
+      
+      const displayText = isImage ? msg.message_text : decryptText(msg.message_text);
+
+      const wrapper = document.createElement('div');
+      wrapper.className = `flex flex-col ${isMe ? 'items-end' : 'items-start'}`;
+
+      const contentHtml = isImage
+        ? `<img src="${displayText}" onclick="openLightbox('${displayText}')" class="rounded-xl max-w-xs max-h-64 object-cover cursor-pointer hover:opacity-90 transition shadow">`
+        : `<div>${displayText}</div>`;
+
+      wrapper.innerHTML = `
+        <span class="text-[10px] text-slate-400 mb-0.5 px-1">${isMe ? 'You' : msg.sender_name}</span>
+        <div class="max-w-[80%] p-3 rounded-2xl text-xs shadow-sm ${isMe ? 'chat-bubble-me' : 'chat-bubble-them'}">
+          ${contentHtml}
+        </div>
+      `;
+
+      chatContainer.appendChild(wrapper);
+      scrollToBottom();
+    }
+
+    function playNotificationSound() {
+      try {
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(587.33, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(880, audioCtx.currentTime + 0.15);
+        gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+        osc.connect(gain); gain.connect(audioCtx.destination);
+        osc.start(); osc.stop(audioCtx.currentTime + 0.3);
+      } catch (e) {}
+    }
+
+    function requestNotificationPermission() {
+      if ("Notification" in window) {
+        Notification.requestPermission().then(perm => {
+          if (perm === "granted") alert("SafeTalk notifications enabled!");
+        });
+      }
+    }
+
+    function showDesktopNotification(sender, text) {
+      if ("Notification" in window && Notification.permission === "granted" && sender !== currentUser.email) {
+        const clearText = text.startsWith('http') ? '📸 Shared a photo' : decryptText(text);
+        new Notification(`SafeTalk: ${sender}`, {
+          body: clearText,
+          icon: 'https://cdn-icons-png.flaticon.com/512/3077/3077361.png'
+        });
+      }
+    }
+
+    function subscribeToRealtime() {
+      supabaseClient
+        .channel('public:messages')
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, payload => {
+          const newMsg = payload.new;
+          if (currentChatType === 'group' && newMsg.channel_type === 'group') {
+            renderSingleMessage(newMsg);
+            if (newMsg.sender_email !== currentUser.email) { playNotificationSound(); showDesktopNotification(newMsg.sender_name, newMsg.message_text); }
+          } else if (
+            currentChatType === 'direct' && newMsg.channel_type === 'direct' &&
+            ((newMsg.sender_email === currentUser.email && newMsg.recipient_email === currentRecipientEmail) ||
+             (newMsg.sender_email === currentRecipientEmail && newMsg.recipient_email === currentUser.email))
+          ) {
+            renderSingleMessage(newMsg);
+            if (newMsg.sender_email !== currentUser.email) { playNotificationSound(); showDesktopNotification(newMsg.sender_name, newMsg.message_text); }
+          }
+        })
+        .subscribe();
+    }
+
+    function openLightbox(url) {
+      document.getElementById('lightboxImg').src = url;
+      document.getElementById('lightboxModal').classList.remove('hidden');
+    }
+
+    function closeLightbox() {
+      document.getElementById('lightboxModal').classList.add('hidden');
+    }
+
+    function scrollToBottom() {
+      const chatContainer = document.getElementById('chatMessages');
+      chatContainer.scrollTop = chatContainer.scrollHeight;
+    }
+
+    document.addEventListener('DOMContentLoaded', initApp);
+  </script>
+</body>
+</html>
