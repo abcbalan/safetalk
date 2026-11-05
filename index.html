@@ -200,31 +200,24 @@
 
     // --- APP INITIALIZATION ---
 async function initApp() {
-  // Check if already logged in
   const { data: { session } } = await supabaseClient.auth.getSession();
-  if (session) {
-    currentUser = session.user;
-  } else {
-    // Attempt to sign in default family account
-    const { data, error } = await supabaseClient.auth.signInWithPassword({
-      email: 'dad@family.com',
-      password: '123456'
-    });
+  
+  if (!session) {
+    // Prompt for email and password when opening the app
+    const email = prompt("Enter your SafeTalk email (e.g. mum@family.com, alex@family.com):", "");
+    if (!email) return;
+    const password = prompt("Enter your password:", "");
+    if (!password) return;
 
+    const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
     if (error) {
-      // If user doesn't exist yet, automatically create it
-      const { data: signUpData, error: signUpErr } = await supabaseClient.auth.signUp({
-        email: 'dad@family.com',
-        password: '123456'
-      });
-      if (signUpErr) {
-        alert("Setup error: " + signUpErr.message);
-        return;
-      }
-      currentUser = signUpData.user;
-    } else {
-      currentUser = data.user;
+      alert("Login failed: " + error.message);
+      location.reload(); // Refresh to try again
+      return;
     }
+    currentUser = data.user;
+  } else {
+    currentUser = session.user;
   }
 
   document.getElementById('currentUserBadge').innerText = `👤 ${currentUser.email.split('@')[0]}`;
