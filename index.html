@@ -212,25 +212,31 @@
     let recordingTimerInterval = null;
     let recordingSeconds = 0;
 
-    // --- ENCRYPTION & DECRYPTION ---
-    function encryptText(text) {
-      if (text.startsWith('http') || text.startsWith('data:audio')) return text;
-      return "ENC:" + btoa(text.split('').map((c, i) => 
-        String.fromCharCode(c.charCodeAt(0) ^ SECRET_KEY.charCodeAt(i % SECRET_KEY.length))
-      ).join(''));
-    }
+// --- ENCRYPTION & DECRYPTION (Emoji Safe) ---
+function encryptText(text) {
+  if (text.startsWith('http') || text.startsWith('data:audio')) return text;
+  try {
+    const encoded = encodeURIComponent(text);
+    return "ENC:" + btoa(encoded.split('').map((c, i) => 
+      String.fromCharCode(c.charCodeAt(0) ^ SECRET_KEY.charCodeAt(i % SECRET_KEY.length))
+    ).join(''));
+  } catch (e) {
+    return text; // Fallback to raw text if encryption fails on special characters
+  }
+}
 
-    function decryptText(cipherText) {
-      if (!cipherText.startsWith("ENC:")) return cipherText;
-      try {
-        const rawCipher = cipherText.replace("ENC:", "");
-        return atob(rawCipher).split('').map((c, i) => 
-          String.fromCharCode(c.charCodeAt(0) ^ SECRET_KEY.charCodeAt(i % SECRET_KEY.length))
-        ).join('');
-      } catch(e) {
-        return cipherText;
-      }
-    }
+function decryptText(cipherText) {
+  if (!cipherText.startsWith("ENC:")) return cipherText;
+  try {
+    const rawCipher = cipherText.replace("ENC:", "");
+    const decodedXor = atob(rawCipher).split('').map((c, i) => 
+      String.fromCharCode(c.charCodeAt(0) ^ SECRET_KEY.charCodeAt(i % SECRET_KEY.length))
+    ).join('');
+    return decodeURIComponent(decodedXor);
+  } catch(e) {
+    return cipherText;
+  }
+}
 
     // --- INITIALIZATION ---
     async function initApp() {
