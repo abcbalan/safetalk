@@ -1,5 +1,3 @@
-<!-- Testing -->
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -10,14 +8,11 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
-    /* Signal-Style Clean Themes (Green Accent) */
     .chat-bubble-me { background: #15803d; color: white; border-bottom-right-radius: 4px; }
     .chat-bubble-them { background: #ffffff; color: #0f172a; border-bottom-left-radius: 4px; border: 1px solid #e2e8f0; }
     .text-sm-custom { font-size: 0.875rem; }
     .text-lg-custom { font-size: 1.05rem; }
     .text-xl-custom { font-size: 1.25rem; }
-    
-    /* Custom Scrollbar for Signal feel */
     ::-webkit-scrollbar { width: 5px; }
     ::-webkit-scrollbar-track { background: transparent; }
     ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
@@ -25,7 +20,7 @@
 </head>
 <body id="appBody" class="bg-slate-100 font-sans h-screen flex flex-col antialiased text-sm-custom">
 
-  <!-- TOP HEADER (SIGNAL GREEN STYLE) -->
+  <!-- TOP HEADER -->
   <header class="bg-emerald-800 text-white px-4 py-2.5 flex items-center justify-between shadow-md shrink-0">
     <div class="flex items-center space-x-3">
       <div id="headerAvatar" class="w-9 h-9 rounded-full bg-emerald-600 flex items-center justify-center font-bold text-white shadow border border-emerald-500 text-sm">
@@ -40,34 +35,27 @@
       </div>
     </div>
 
-    <!-- Right Controls: History Search & Settings -->
     <div class="flex items-center space-x-2">
-      <!-- Search History Bar -->
       <div class="relative hidden sm:block">
-        <input type="text" id="historySearchInput" oninput="filterMessageHistory()" placeholder="Search chat history..." class="bg-emerald-900 text-emerald-100 placeholder-emerald-400 text-xs px-3 py-1.5 pl-8 rounded-lg border border-emerald-700 focus:outline-none focus:ring-1 focus:ring-white">
+        <input type="text" id="historySearchInput" oninput="filterMessageHistory()" placeholder="Search chat history..." class="bg-emerald-900 text-emerald-100 placeholder-emerald-400 text-xs px-3 py-1.5 pl-8 rounded-lg border border-emerald-700 focus:outline-none">
         <i class="fas fa-search absolute left-2.5 top-2 text-emerald-400 text-xs"></i>
       </div>
-
-      <!-- Font Size Selector -->
       <select id="fontSizeSelect" onchange="changeFontSize(this.value)" class="text-xs bg-emerald-900 text-emerald-100 border border-emerald-700 px-2 py-1.5 rounded-lg focus:outline-none">
         <option value="sm">🔤 Normal</option>
         <option value="lg">🔤 Large</option>
         <option value="xl">🔤 XL Text</option>
       </select>
-
       <div id="currentUserBadge" class="text-xs text-emerald-100 bg-emerald-900 px-3 py-1.5 rounded-lg border border-emerald-700 font-medium">
         Connecting...
       </div>
     </div>
   </header>
 
-  <!-- MAIN SIGNAL APP LAYOUT -->
+  <!-- MAIN LAYOUT -->
   <div class="flex-1 flex flex-col md:flex-row overflow-hidden">
 
-    <!-- LEFT SIDEBAR: SIGNAL CONVERSATIONS LIST -->
+    <!-- LEFT SIDEBAR -->
     <aside class="w-full md:w-80 bg-white border-r border-slate-200 flex flex-col shrink-0 max-h-56 md:max-h-none overflow-hidden">
-      
-      <!-- Group Rooms -->
       <div class="p-3 border-b border-slate-100 bg-slate-50">
         <button onclick="switchChat('group', null, 'SafeTalk Family Hub')" id="btn-group-all" class="w-full text-left px-3.5 py-3 rounded-2xl bg-emerald-700 hover:bg-emerald-800 text-white font-semibold text-xs flex items-center space-x-3 shadow-sm transition">
           <div class="w-8 h-8 rounded-full bg-emerald-600 flex items-center justify-center text-white font-bold shrink-0">
@@ -80,13 +68,9 @@
         </button>
       </div>
 
-      <!-- Direct Chats Section -->
       <div class="p-3 pb-1 text-[10px] font-bold uppercase tracking-wider text-slate-400 bg-slate-50">Direct Messages</div>
-      <div id="familyList" class="flex-1 overflow-y-auto divide-y divide-slate-100">
-        <!-- Populated dynamically with Signal-style avatars -->
-      </div>
+      <div id="familyList" class="flex-1 overflow-y-auto divide-y divide-slate-100"></div>
 
-      <!-- Sidebar Status Footer -->
       <div class="p-2.5 border-t border-slate-200 bg-slate-50 text-[11px] text-slate-500 text-center flex items-center justify-center gap-1.5">
         <span id="syncStatusIndicator" class="w-2 h-2 rounded-full bg-emerald-500 inline-block"></span>
         <span>SafeTalk Signal Engine</span>
@@ -95,18 +79,13 @@
 
     <!-- RIGHT MAIN CHAT AREA -->
     <main class="flex-1 flex flex-col bg-slate-100 relative">
-      
-      <!-- MOBILE SEARCH BAR (Shown on small screens) -->
       <div class="p-2 bg-white border-b border-slate-200 sm:hidden">
         <input type="text" id="mobileHistorySearch" oninput="filterMessageHistory()" placeholder="Search chat history..." class="w-full bg-slate-100 text-xs px-3 py-1.5 rounded-lg border border-slate-300 focus:outline-none">
       </div>
 
-      <!-- MESSAGES DISPLAY AREA WITH TIMESTAMPS -->
-      <div id="chatMessages" class="flex-1 p-4 overflow-y-auto space-y-3">
-        <!-- Messages render dynamically -->
-      </div>
+      <div id="chatMessages" class="flex-1 p-4 overflow-y-auto space-y-3"></div>
 
-      <!-- VOICE RECORDING PREVIEW BAR (Shows when recording voice) -->
+      <!-- VOICE RECORDING BAR -->
       <div id="voiceRecordingBar" class="hidden px-4 py-2 bg-emerald-50 border-t border-emerald-200 flex items-center justify-between">
         <div class="flex items-center space-x-2">
           <span class="w-3 h-3 rounded-full bg-red-500 animate-ping"></span>
@@ -117,7 +96,7 @@
         </button>
       </div>
 
-      <!-- EMOJI PICKER POPUP BAR -->
+      <!-- EMOJI PICKER -->
       <div id="emojiPicker" class="hidden px-3 py-2 bg-white border-t border-slate-200 flex gap-2 flex-wrap text-lg shadow-inner">
         <button type="button" onclick="insertEmoji('😊')">😊</button>
         <button type="button" onclick="insertEmoji('❤️')">❤️</button>
@@ -129,37 +108,32 @@
         <button type="button" onclick="insertEmoji('⭐')">⭐</button>
       </div>
 
-      <!-- SIGNAL INPUT & ATTACHMENT BAR -->
+      <!-- INPUT BAR -->
       <form onsubmit="sendMessage(event)" class="p-3 bg-white border-t border-slate-200 flex flex-col gap-2 shadow-lg">
         <div class="flex gap-2 items-center">
           
-          <!-- Camera / Gallery Picker -->
-          <label class="p-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-full cursor-pointer transition flex items-center justify-center shrink-0" title="Send Photo">
+          <!-- Image Picker (Fixed: Removed capture so phone allows Gallery or Camera choice) -->
+          <label class="p-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-full cursor-pointer transition flex items-center justify-center shrink-0" title="Select Photo from Gallery or Camera">
             <i class="fas fa-camera text-base"></i>
-            <input type="file" id="chatImageInput" accept="image/*" capture="environment" class="hidden" onchange="handleImageSelected(event)">
+            <input type="file" id="chatImageInput" accept="image/*" class="hidden" onchange="handleImageSelected(event)">
           </label>
 
-          <!-- Voice Message Mic Button -->
           <button type="button" id="micBtn" onclick="toggleVoiceRecording()" class="p-2.5 bg-slate-100 hover:bg-slate-200 text-emerald-700 rounded-full transition flex items-center justify-center shrink-0" title="Record Voice Message">
             <i class="fas fa-microphone text-base"></i>
           </button>
 
-          <!-- Emoji Picker Button -->
           <button type="button" onclick="toggleEmojiPicker()" class="p-2.5 bg-slate-100 hover:bg-slate-200 text-amber-500 rounded-full transition flex items-center justify-center shrink-0" title="Insert Emoji">
             <i class="fas fa-face-smile text-base"></i>
           </button>
 
-          <!-- Text Input Field -->
           <input type="text" id="messageInput" placeholder="Signal message..." class="flex-1 px-4 py-2 border border-slate-300 rounded-full text-sm focus:outline-none focus:ring-2 focus:ring-emerald-600 bg-white">
           
-          <!-- Retention Dropdown -->
           <select id="retentionSelect" class="text-xs bg-slate-50 border border-slate-300 rounded-xl px-2 py-2 text-slate-700 focus:outline-none hidden sm:block">
             <option value="forever">⏳ Keep</option>
             <option value="24h">24 Hours</option>
             <option value="7d">1 Week</option>
           </select>
 
-          <!-- Send Button -->
           <button type="submit" class="w-10 h-10 bg-emerald-700 hover:bg-emerald-800 text-white rounded-full shadow transition flex items-center justify-center shrink-0">
             <i class="fas fa-paper-plane text-sm"></i>
           </button>
@@ -168,21 +142,41 @@
     </main>
   </div>
 
-  <!-- IMAGE PREVIEW MODAL -->
+  <!-- IMAGE COMPRESSION & PREVIEW MODAL -->
   <div id="imageModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
     <div class="bg-white w-full max-w-sm rounded-2xl shadow-2xl overflow-hidden p-5 flex flex-col items-center">
       <h3 class="font-bold text-slate-900 text-sm mb-3">Send Photo via SafeTalk</h3>
+      
       <div class="w-full h-48 bg-slate-100 rounded-xl overflow-hidden mb-4 border border-slate-200">
         <img id="modalImagePreview" class="w-full h-full object-cover" src="" alt="Preview">
       </div>
+
+      <div class="w-full mb-4 text-xs space-y-2">
+        <label class="block font-semibold text-slate-700 mb-1">Quality Setting:</label>
+        <label class="flex items-center space-x-2.5 p-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 cursor-pointer transition">
+          <input type="radio" name="compressionOption" value="compressed" checked class="text-emerald-600 focus:ring-emerald-500">
+          <div>
+            <span class="font-bold text-slate-800">Optimized (Compress)</span>
+            <p class="text-[10px] text-slate-500">Fast upload, saves mobile data</p>
+          </div>
+        </label>
+        <label class="flex items-center space-x-2.5 p-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 cursor-pointer transition">
+          <input type="radio" name="compressionOption" value="original" class="text-emerald-600 focus:ring-emerald-500">
+          <div>
+            <span class="font-bold text-slate-800">Original Quality</span>
+            <p class="text-[10px] text-slate-500">Full resolution uncompressed file</p>
+          </div>
+        </label>
+      </div>
+
       <div class="flex gap-2 w-full">
-        <button onclick="closeImageModal()" class="flex-1 py-2.5 bg-slate-200 text-slate-700 font-bold text-xs rounded-xl">Cancel</button>
-        <button onclick="confirmAndSendImage()" id="sendImageBtn" class="flex-1 py-2.5 bg-emerald-700 text-white font-bold text-xs rounded-xl shadow">Send Photo</button>
+        <button onclick="closeImageModal()" class="flex-1 py-2.5 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold text-xs rounded-xl transition">Cancel</button>
+        <button onclick="confirmAndSendImage()" id="sendImageBtn" class="flex-1 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs rounded-xl shadow transition">Send Photo</button>
       </div>
     </div>
   </div>
 
-  <!-- FULLSCREEN LIGHTBOX -->
+  <!-- LIGHTBOX -->
   <div id="lightboxModal" class="fixed inset-0 bg-black/90 hidden z-50 flex items-center justify-center p-4" onclick="closeLightbox()">
     <img id="lightboxImg" class="max-w-full max-h-full rounded-lg shadow-2xl object-contain">
   </div>
@@ -204,41 +198,39 @@
     let currentChatType = 'group';
     let currentRecipientEmail = null;
     let selectedImageFile = null;
-    let allLoadedMessages = []; // Cached for history searching
+    let allLoadedMessages = [];
 
-    // Voice recording globals
     let mediaRecorder = null;
     let audioChunks = [];
     let recordingTimerInterval = null;
     let recordingSeconds = 0;
 
-// --- ENCRYPTION & DECRYPTION (Emoji Safe) ---
-function encryptText(text) {
-  if (text.startsWith('http') || text.startsWith('data:audio')) return text;
-  try {
-    const encoded = encodeURIComponent(text);
-    return "ENC:" + btoa(encoded.split('').map((c, i) => 
-      String.fromCharCode(c.charCodeAt(0) ^ SECRET_KEY.charCodeAt(i % SECRET_KEY.length))
-    ).join(''));
-  } catch (e) {
-    return text; // Fallback to raw text if encryption fails on special characters
-  }
-}
+    // --- EMOJI-SAFE ENCRYPTION ---
+    function encryptText(text) {
+      if (text.startsWith('http') || text.startsWith('data:audio')) return text;
+      try {
+        const encoded = encodeURIComponent(text);
+        return "ENC:" + btoa(encoded.split('').map((c, i) => 
+          String.fromCharCode(c.charCodeAt(0) ^ SECRET_KEY.charCodeAt(i % SECRET_KEY.length))
+        ).join(''));
+      } catch (e) {
+        return text;
+      }
+    }
 
-function decryptText(cipherText) {
-  if (!cipherText.startsWith("ENC:")) return cipherText;
-  try {
-    const rawCipher = cipherText.replace("ENC:", "");
-    const decodedXor = atob(rawCipher).split('').map((c, i) => 
-      String.fromCharCode(c.charCodeAt(0) ^ SECRET_KEY.charCodeAt(i % SECRET_KEY.length))
-    ).join('');
-    return decodeURIComponent(decodedXor);
-  } catch(e) {
-    return cipherText;
-  }
-}
+    function decryptText(cipherText) {
+      if (!cipherText.startsWith("ENC:")) return cipherText;
+      try {
+        const rawCipher = cipherText.replace("ENC:", "");
+        const decodedXor = atob(rawCipher).split('').map((c, i) => 
+          String.fromCharCode(c.charCodeAt(0) ^ SECRET_KEY.charCodeAt(i % SECRET_KEY.length))
+        ).join('');
+        return decodeURIComponent(decodedXor);
+      } catch(e) {
+        return cipherText;
+      }
+    }
 
-    // --- INITIALIZATION ---
     async function initApp() {
       const { data: { session } } = await supabaseClient.auth.getSession();
       
@@ -299,7 +291,6 @@ function decryptText(cipherText) {
       loadMessages();
     }
 
-    // --- MESSAGES & SEARCH HISTORY ---
     async function loadMessages() {
       const chatContainer = document.getElementById('chatMessages');
       chatContainer.innerHTML = '<div class="text-center text-xs text-slate-400 py-4"><i class="fas fa-spinner fa-spin mr-1"></i> Loading messages...</div>';
@@ -385,6 +376,75 @@ function decryptText(cipherText) {
       scrollToBottom();
     }
 
+    // --- IMAGE SELECTION & COMPRESSION MODAL ---
+    function handleImageSelected(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      selectedImageFile = file;
+      document.getElementById('modalImagePreview').src = URL.createObjectURL(file);
+      document.getElementById('imageModal').classList.remove('hidden');
+    }
+
+    function closeImageModal() {
+      document.getElementById('imageModal').classList.add('hidden');
+      selectedImageFile = null;
+      document.getElementById('chatImageInput').value = '';
+    }
+
+    async function compressImageFile(file, maxWidth = 1000, quality = 0.7) {
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = (event) => {
+          const img = new Image();
+          img.src = event.target.result;
+          img.onload = () => {
+            const canvas = document.createElement('canvas');
+            let width = img.width, height = img.height;
+            if (width > maxWidth) { height = Math.round((height * maxWidth) / width); width = maxWidth; }
+            canvas.width = width; canvas.height = height;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(img, 0, 0, width, height);
+            canvas.toBlob((blob) => {
+              resolve(new File([blob], file.name.replace(/\.[^/.]+$/, ".jpg"), { type: 'image/jpeg' }));
+            }, 'image/jpeg', quality);
+          };
+        };
+      });
+    }
+
+    async function confirmAndSendImage() {
+      if (!selectedImageFile) return;
+      const sendBtn = document.getElementById('sendImageBtn');
+      sendBtn.disabled = true; sendBtn.innerText = "Uploading...";
+
+      const compressionChoice = document.querySelector('input[name="compressionOption"]:checked').value;
+      const fileToUpload = compressionChoice === 'compressed' ? await compressImageFile(selectedImageFile) : selectedImageFile;
+
+      const fileName = `safetalk_${Date.now()}_${Math.random()}.jpg`;
+      const filePath = `car-photos/${fileName}`;
+
+      const { error: uploadError } = await supabaseClient.storage.from('car-photos').upload(filePath, fileToUpload);
+      if (uploadError) { alert("Upload error: " + uploadError.message); sendBtn.disabled = false; sendBtn.innerText = "Send Photo"; return; }
+
+      const { data: publicUrlData } = supabaseClient.storage.from('car-photos').getPublicUrl(filePath);
+      const senderName = familyMembers.find(m => m.email === currentUser.email)?.name || currentUser.email.split('@')[0];
+
+      const newMessage = {
+        sender_email: currentUser.email,
+        sender_name: senderName,
+        message_text: publicUrlData.publicUrl,
+        channel_type: currentChatType,
+        recipient_email: currentRecipientEmail,
+        created_at: new Date().toISOString()
+      };
+
+      await supabaseClient.from('messages').insert([newMessage]);
+      closeImageModal();
+      sendBtn.disabled = false; sendBtn.innerText = "Send Photo";
+      loadMessages();
+    }
+
     // --- VOICE MESSAGING ---
     async function toggleVoiceRecording() {
       const bar = document.getElementById('voiceRecordingBar');
@@ -441,7 +501,6 @@ function decryptText(cipherText) {
       };
     }
 
-    // --- SENDING MESSAGES ---
     async function sendMessage(e) {
       e.preventDefault();
       const input = document.getElementById('messageInput');
@@ -462,49 +521,6 @@ function decryptText(cipherText) {
       };
 
       await supabaseClient.from('messages').insert([newMessage]);
-      loadMessages();
-    }
-
-    // --- IMAGE HANDLING & UTILS ---
-    function handleImageSelected(e) {
-      const file = e.target.files[0];
-      if (!file) return;
-      selectedImageFile = file;
-      document.getElementById('modalImagePreview').src = URL.createObjectURL(file);
-      document.getElementById('imageModal').classList.remove('hidden');
-    }
-
-    function closeImageModal() {
-      document.getElementById('imageModal').classList.add('hidden');
-      selectedImageFile = null;
-    }
-
-    async function confirmAndSendImage() {
-      if (!selectedImageFile) return;
-      const sendBtn = document.getElementById('sendImageBtn');
-      sendBtn.disabled = true; sendBtn.innerText = "Uploading...";
-
-      const fileName = `safetalk_${Date.now()}_${Math.random()}.jpg`;
-      const filePath = `car-photos/${fileName}`;
-
-      const { error: uploadError } = await supabaseClient.storage.from('car-photos').upload(filePath, selectedImageFile);
-      if (uploadError) { alert("Upload error: " + uploadError.message); sendBtn.disabled = false; sendBtn.innerText = "Send Photo"; return; }
-
-      const { data: publicUrlData } = supabaseClient.storage.from('car-photos').getPublicUrl(filePath);
-      const senderName = familyMembers.find(m => m.email === currentUser.email)?.name || currentUser.email.split('@')[0];
-
-      const newMessage = {
-        sender_email: currentUser.email,
-        sender_name: senderName,
-        message_text: publicUrlData.publicUrl,
-        channel_type: currentChatType,
-        recipient_email: currentRecipientEmail,
-        created_at: new Date().toISOString()
-      };
-
-      await supabaseClient.from('messages').insert([newMessage]);
-      closeImageModal();
-      sendBtn.disabled = false; sendBtn.innerText = "Send Photo";
       loadMessages();
     }
 
