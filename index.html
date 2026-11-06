@@ -1,4 +1,4 @@
-<!-- 20261106 v10 Edit works -->
+<!-- 20261106 v11 Edit works -->
 <!-- but delete for everyone not works -->
 
 <!DOCTYPE html>
@@ -746,8 +746,8 @@
       deletedMessageIds.push(msgId);
       localStorage.setItem('safetalk_deleted_local', JSON.stringify(deletedMessageIds));
       // Checking
-      // allLoadedMessages = allLoadedMessages.filter(m => m.id !== msgId);
-      // saveGlobalCache();
+      allLoadedMessages = allLoadedMessages.filter(m => m.id !== msgId);
+      saveGlobalCache();
       filterAndRenderMessages(false);
 
       if (scope === 'everyone' && navigator.onLine && !msgId.toString().startsWith('offline_')) {
