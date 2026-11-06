@@ -1,4 +1,4 @@
-<!-- 20261106 Seamless Offline Pending Messages with Faded UI -->
+<!-- 20261106 Long-Press Context Menu for Messages (Delete, Copy, Reactions) -->
 
 <!DOCTYPE html>
 <html lang="en">
@@ -169,6 +169,40 @@
     </main>
   </div>
 
+  <!-- LONG-PRESS ACTION MODAL / SHEET -->
+  <div id="actionMenuModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden z-50 flex items-end md:items-center justify-center p-0 md:p-4" onclick="closeActionMenu()">
+    <div class="bg-white w-full md:max-w-xs rounded-t-3xl md:rounded-2xl shadow-2xl p-5 flex flex-col gap-3 animate-slideUp" onclick="event.stopPropagation()">
+      <div class="w-10 h-1 bg-slate-300 rounded-full mx-auto md:hidden"></div>
+      <div class="text-xs font-bold text-slate-400 uppercase tracking-wider text-center mb-1">Message Options</div>
+      
+      <!-- Quick Reactions Row -->
+      <div class="flex justify-around bg-slate-50 p-2 rounded-xl border border-slate-100 text-xl">
+        <button onclick="addReaction('❤️')" class="hover:scale-125 transition">❤️</button>
+        <button onclick="addReaction('👍')" class="hover:scale-125 transition">👍</button>
+        <button onclick="addReaction('😂')" class="hover:scale-125 transition">😂</button>
+        <button onclick="addReaction('🎉')" class="hover:scale-125 transition">🎉</button>
+        <button onclick="addReaction('🙏')" class="hover:scale-125 transition">🙏</button>
+      </div>
+
+      <button onclick="copyActiveMessage()" class="w-full py-2.5 px-3 bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold rounded-xl text-xs flex items-center space-x-2.5 transition">
+        <i class="fas fa-copy text-slate-500 w-4"></i>
+        <span>Copy Text</span>
+      </button>
+
+      <button onclick="deleteActiveMessage('me')" class="w-full py-2.5 px-3 bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold rounded-xl text-xs flex items-center space-x-2.5 transition">
+        <i class="fas fa-trash-can text-slate-500 w-4"></i>
+        <span>Delete for Me</span>
+      </button>
+
+      <button id="deleteEveryoneBtn" onclick="deleteActiveMessage('everyone')" class="w-full py-2.5 px-3 bg-red-50 hover:bg-red-100 text-red-600 font-bold rounded-xl text-xs hidden items-center space-x-2.5 transition">
+        <i class="fas fa-ban w-4"></i>
+        <span>Delete for Everyone</span>
+      </button>
+
+      <button onclick="closeActionMenu()" class="w-full py-2.5 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold rounded-xl text-xs mt-1 transition">Cancel</button>
+    </div>
+  </div>
+
   <!-- GROUP CREATION MODAL -->
   <div id="createGroupModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
     <div class="bg-white w-full max-w-sm rounded-2xl shadow-2xl p-5 flex flex-col">
@@ -243,6 +277,7 @@
     let recordingSeconds = 0;
     let countdownInterval = null;
     let pollInterval = null;
+    let activeSelectedMsgId = null;
 
     function encryptText(text) {
       if (text.startsWith('http') || text.startsWith('data:audio')) return text;
@@ -388,7 +423,7 @@
     }
 
     function getGlobalCacheKey() {
-      return `safetalk_global_messages_v9`;
+      return `safetalk_global_messages_v10`;
     }
 
     function saveGlobalCache() {
@@ -565,22 +600,89 @@
 
       const bubbleClass = isOfflinePending ? 'chat-bubble-me-pending' : (isMe ? 'chat-bubble-me' : 'chat-bubble-them');
 
+      const bubbleEl = document.createElement('div');
+      bubbleEl.className = `max-w-[80%] px-3.5 py-2.5 rounded-2xl shadow-sm relative cursor-pointer ${bubbleClass}`;
+      bubbleEl.innerHTML = contentHtml;
+
+      // Attach Click-and-Hold / Long-press & Right-Click handlers
+      let pressTimer = null;
+      
+      const triggerActionMenu = (e) => {
+        e.preventDefault();
+        openActionMenu(msg.id, isMe);
+      };
+
+      bubbleEl.addEventListener('mousedown', (e) => {
+        if (e.button === 2) { triggerActionMenu(e); return; } // Right click
+        pressTimer = setTimeout(() => triggerActionMenu(e), 500);
+      });
+      bubbleEl.addEventListener('mouseup', () => clearTimeout(pressTimer));
+      bubbleEl.addEventListener('touchstart', () => {
+        pressTimer = setTimeout(() => triggerActionMenu(event), 600);
+      });
+      bubbleEl.addEventListener('touchend', () => clearTimeout(pressTimer));
+
       wrapper.innerHTML = `
         <span class="text-slate-400 mb-0.5 px-1" style="font-size: 0.75em;">${isMe ? 'You' : msg.sender_name} • ${timeTag}${statusSuffix} <span class="text-amber-600 font-medium countdown-tag" data-expires="${msg.expires_at || ''}">${countdownStr}</span></span>
-        <div class="max-w-[80%] px-3.5 py-2.5 rounded-2xl shadow-sm relative ${bubbleClass}">
-          ${contentHtml}
-          <button onclick="toggleDeleteMenu(event, '${msg.id}')" class="absolute ${isMe ? '-left-6' : '-right-6'} top-2 opacity-0 group-hover:opacity-100 transition text-slate-400 hover:text-slate-700 px-1">
-            <i class="fas fa-ellipsis-v"></i>
-          </button>
-          <div id="deleteMenu_${msg.id}" class="hidden absolute ${isMe ? 'right-0' : 'left-0'} top-8 bg-white text-slate-800 rounded-xl shadow-xl border border-slate-200 py-1 z-30 w-40">
-            <button onclick="deleteMessage('${msg.id}', 'me')" class="w-full text-left px-3 py-2 hover:bg-slate-100 text-slate-700">Delete for Me</button>
-            ${isMe ? `<button onclick="deleteMessage('${msg.id}', 'everyone')" class="w-full text-left px-3 py-2 hover:bg-slate-100 text-red-600 font-semibold">Delete for Everyone</button>` : ''}
-          </div>
-        </div>
       `;
-
+      wrapper.appendChild(bubbleEl);
       chatContainer.appendChild(wrapper);
       scrollToBottom();
+    }
+
+    function openActionMenu(msgId, isMe) {
+      activeSelectedMsgId = msgId;
+      const deleteEveryoneBtn = document.getElementById('deleteEveryoneBtn');
+      if (isMe) {
+        deleteEveryoneBtn.classList.remove('hidden');
+        deleteEveryoneBtn.classList.add('flex');
+      } else {
+        deleteEveryoneBtn.classList.add('hidden');
+        deleteEveryoneBtn.classList.remove('flex');
+      }
+      document.getElementById('actionMenuModal').classList.remove('hidden');
+    }
+
+    function closeActionMenu() {
+      document.getElementById('actionMenuModal').classList.add('hidden');
+      activeSelectedMsgId = null;
+    }
+
+    function copyActiveMessage() {
+      const msg = allLoadedMessages.find(m => m.id === activeSelectedMsgId);
+      if (msg) {
+        const text = decryptText(msg.message_text);
+        navigator.clipboard.writeText(text).then(() => {
+          alert("Message copied to clipboard!");
+        });
+      }
+      closeActionMenu();
+    }
+
+    function addReaction(emoji) {
+      if (!activeSelectedMsgId) return;
+      const msg = allLoadedMessages.find(m => m.id === activeSelectedMsgId);
+      if (msg) {
+        const currentText = decryptText(msg.message_text);
+        msg.message_text = `${currentText} ${emoji}`;
+        saveGlobalCache();
+        filterAndRenderMessages();
+      }
+      closeActionMenu();
+    }
+
+    async function deleteActiveMessage(scope) {
+      if (!activeSelectedMsgId) return;
+      const msgId = activeSelectedMsgId;
+      closeActionMenu();
+
+      deletedMessageIds.push(msgId);
+      localStorage.setItem('safetalk_deleted_local', JSON.stringify(deletedMessageIds));
+      filterAndRenderMessages();
+
+      if (scope === 'everyone' && navigator.onLine && !msgId.toString().startsWith('offline_')) {
+        await supabaseClient.from('messages').delete().eq('id', msgId);
+      }
     }
 
     function startCountdownTimerEngine() {
@@ -606,25 +708,6 @@
           filterAndRenderMessages();
         }
       }, 1000);
-    }
-
-    function toggleDeleteMenu(e, msgId) {
-      e.stopPropagation();
-      document.querySelectorAll('[id^="deleteMenu_"]').forEach(m => {
-        if (m.id !== `deleteMenu_${msgId}`) m.classList.add('hidden');
-      });
-      const menu = document.getElementById(`deleteMenu_${msgId}`);
-      menu.classList.toggle('hidden');
-    }
-
-    async function deleteMessage(msgId, scope) {
-      deletedMessageIds.push(msgId);
-      localStorage.setItem('safetalk_deleted_local', JSON.stringify(deletedMessageIds));
-      filterAndRenderMessages();
-
-      if (scope === 'everyone' && navigator.onLine && !msgId.toString().startsWith('offline_')) {
-        await supabaseClient.from('messages').delete().eq('id', msgId);
-      }
     }
 
     async function toggleVoiceRecording() {
@@ -688,7 +771,6 @@
             }
           }
           
-          // Offline fallback
           newMessage.id = 'offline_' + Date.now();
           allLoadedMessages.push(newMessage);
           saveGlobalCache();
@@ -729,7 +811,6 @@
         }
       }
 
-      // If offline or network fails, save locally as pending (faded style with ⏳)
       newMessage.id = 'offline_' + Date.now();
       allLoadedMessages.push(newMessage);
       saveGlobalCache();
