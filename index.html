@@ -385,7 +385,7 @@
     }
 
     function getGlobalCacheKey() {
-      return `safetalk_global_messages_v6`;
+      return `safetalk_global_messages_v7`;
     }
 
     function saveGlobalCache() {
@@ -711,7 +711,6 @@
       };
 
       if (navigator.onLine) {
-        // Send directly to Supabase and pull back the official DB row (including real database ID)
         const { data, error } = await supabaseClient.from('messages').insert([newMessage]).select();
         if (error) {
           alert("Database Error: " + error.message);
@@ -742,7 +741,7 @@
       if (queue.length === 0) { updateSyncStatus(true); return; }
 
       for (let msg of queue) {
-        delete msg.id; // Let Supabase assign ID
+        delete msg.id;
         await supabaseClient.from('messages').insert([msg]);
       }
       localStorage.removeItem('safetalk_offline_queue');
@@ -836,7 +835,7 @@
 
     function updateAppBadge() {
       const totalUnread = Object.values(unreadCounts).reduce((a, b) => a + b, 0);
-      document.title = totalUnread > 0 ? `(${totalUnread}) SafeTalk Messenger` : 'SafeTalk - Private Family Messenger';
+      document.title = totalUnread > 0 ? `(${totalUnread}) SafeTalk Messenger` : 'SafeTalk - Messenger';
     }
 
     function handleImageSelected(e) {
