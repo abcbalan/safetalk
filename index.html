@@ -1,6 +1,5 @@
-<!-- 20261106 v5 Fix click hold in iphone issue -->
-<!-- Try to fix Delete for everyong the target user not delete.  -->
-<!-- Try to fix And if edit posted messaged -->
+<!-- 20261106 v6 Edit works -->
+<!-- Try to fix delete for everyone issue
 
 <!DOCTYPE html>
 <html lang="en">
@@ -172,7 +171,7 @@
     </main>
   </div>
 
-  <!-- ACTION MENU MODAL / SHEET (Centered safely with max height to avoid cutoff) -->
+  <!-- ACTION MENU MODAL / SHEET -->
   <div id="actionMenuModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4" onclick="closeActionMenu()">
     <div class="bg-white w-full max-w-xs rounded-2xl shadow-2xl p-5 flex flex-col gap-3 my-auto max-h-[90vh] overflow-y-auto" onclick="event.stopPropagation()">
       <div class="text-xs font-bold text-slate-400 uppercase tracking-wider text-center mb-1">Message Options</div>
@@ -285,8 +284,8 @@
     let countdownInterval = null;
     let pollInterval = null;
     let activeSelectedMsgId = null;
-    let editingMessageId = null; // Track message being edited in-place
-    let shouldAutoScroll = true; // Prevents forced auto-scroll when reading history
+    let editingMessageId = null;
+    let shouldAutoScroll = true;
 
     function encryptText(text) {
       if (text.startsWith('http') || text.startsWith('data:audio')) return text;
@@ -433,7 +432,7 @@
     }
 
     function getGlobalCacheKey() {
-      return `safetalk_global_messages_v14`;
+      return `safetalk_global_messages_v15`;
     }
 
     function saveGlobalCache() {
@@ -487,7 +486,7 @@
           saveGlobalCache();
           
           if (!document.getElementById('chatRoomScreen').classList.contains('hidden')) {
-            filterAndRenderMessages(false); // Do not force scroll when polling in background
+            filterAndRenderMessages(false);
           }
         }
       }, 2000);
@@ -557,7 +556,6 @@
       }
     }
 
-    // Track user scroll position so background polling doesn't forcefully scroll them back down
     document.addEventListener('DOMContentLoaded', () => {
       const chatContainer = document.getElementById('chatMessages');
       if (chatContainer) {
@@ -630,7 +628,6 @@
       bubbleEl.className = `max-w-[80%] px-3.5 py-2.5 rounded-2xl shadow-sm relative cursor-pointer ${bubbleClass}`;
       bubbleEl.innerHTML = contentHtml;
 
-      // Reliable iPhone & PC Click & Hold / Right Click Handlers
       let pressTimer = null;
       let startX = 0;
       let startY = 0;
@@ -745,14 +742,17 @@
       const msgId = activeSelectedMsgId;
       closeActionMenu();
 
+      // Immediately remove from local list & cache so it vanishes instantly
       deletedMessageIds.push(msgId);
       localStorage.setItem('safetalk_deleted_local', JSON.stringify(deletedMessageIds));
+      allLoadedMessages = allLoadedMessages.filter(m => m.id !== msgId);
+      saveGlobalCache();
       filterAndRenderMessages(false);
 
       if (scope === 'everyone' && navigator.onLine && !msgId.toString().startsWith('offline_')) {
         const { error } = await supabaseClient.from('messages').delete().eq('id', msgId);
         if (error) {
-          alert("Could not delete message for everyone: " + error.message);
+          alert("Cloud delete error: " + error.message);
         }
       }
     }
@@ -862,7 +862,6 @@
       input.value = '';
       const cipherText = encryptText(text);
 
-      // IF EDITING EXISTING MESSAGE IN-PLACE
       if (editingMessageId) {
         const msgId = editingMessageId;
         editingMessageId = null;
@@ -881,7 +880,6 @@
         return;
       }
 
-      // SENDING NEW MESSAGE
       const senderName = familyMembers.find(m => m.email === currentUser.email)?.name || currentUser.email.split('@')[0];
       const newMessage = {
         sender_email: currentUser.email,
