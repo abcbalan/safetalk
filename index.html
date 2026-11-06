@@ -98,7 +98,7 @@
 
         <div class="flex items-center space-x-1.5 shrink-0">
           <select id="retentionSelect" class="bg-slate-100 border border-slate-300 rounded-lg px-2 py-1.5 text-slate-700 focus:outline-none font-medium text-xs">
-            <option value="forever">⏳ Keep Forever</option>
+            <option value="forever" selected>⏳ Keep Forever</option>
             <option value="1m">⏱️ 1 Min Test</option>
             <option value="8h">⏳ 8 Hours</option>
             <option value="7d">⏳ 1 Week</option>
@@ -385,7 +385,7 @@
     }
 
     function getGlobalCacheKey() {
-      return `safetalk_global_messages_v4`;
+      return `safetalk_global_messages_v5`;
     }
 
     function saveGlobalCache() {
@@ -413,7 +413,6 @@
         .order('created_at', { ascending: true });
 
       if (!error && data) {
-        // Merge without dropping local unsynced messages
         const existingMap = new Map(allLoadedMessages.map(m => [m.id, m]));
         data.forEach(m => existingMap.set(m.id, m));
         allLoadedMessages = Array.from(existingMap.values());
@@ -441,7 +440,7 @@
             filterAndRenderMessages();
           }
         }
-      }, 2500);
+      }, 2000);
     }
 
     function filterAndRenderMessages() {
