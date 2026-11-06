@@ -1,4 +1,4 @@
-<!-- 20261106 v12 Edit works -->
+<!-- 20261106 v13 Edit works -->
 <!-- but delete for everyone not immediately -->
 <!-- Try to fix Realtime Delete Sync so messages vanish instantly across open screens -->
 
@@ -434,7 +434,7 @@
     }
 
     function getGlobalCacheKey() {
-      return `safetalk_global_messages_v18`;
+      return `safetalk_global_messages_v19`;
     }
 
     function saveGlobalCache() {
@@ -474,34 +474,34 @@
     function startRealtimeSubscription() {
       supabaseClient
         .channel('public:messages')
-        .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'messages' }, payload => {
-          const deletedId = payload.old.id;
-          if (!deletedMessageIds.includes(deletedId)) {
-            deletedMessageIds.push(deletedId);
-            localStorage.setItem('safetalk_deleted_local', JSON.stringify(deletedMessageIds));
-          }
-          allLoadedMessages = allLoadedMessages.filter(m => m.id !== deletedId);
-          saveGlobalCache();
-          filterAndRenderMessages(false);
-        })
-        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, payload => {
-          const newMsg = payload.new;
-          if (!allLoadedMessages.some(m => m.id === newMsg.id)) {
-            allLoadedMessages.push(newMsg);
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, async (payload) => {
+          if (payload.eventType === 'DELETE') {
+            const deletedId = payload.old.id;
+            if (!deletedMessageIds.includes(deletedId)) {
+              deletedMessageIds.push(deletedId);
+              localStorage.setItem('safetalk_deleted_local', JSON.stringify(deletedMessageIds));
+            }
+            allLoadedMessages = allLoadedMessages.filter(m => m.id !== deletedId);
             saveGlobalCache();
             filterAndRenderMessages(false);
-          }
-        })
-        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'messages' }, payload => {
-          const updatedMsg = payload.new;
-          const index = allLoadedMessages.findIndex(m => m.id === updatedMsg.id);
-          if (index !== -1) {
-            allLoadedMessages[index] = updatedMsg;
           } else {
-            allLoadedMessages.push(updatedMsg);
+            // Re-fetch latest snapshot on INSERT/UPDATE to guarantee instant sync
+            const { data, error } = await supabaseClient
+              .from('messages')
+              .select('*')
+              .order('created_at', { ascending: true });
+
+            if (!error && data) {
+              allLoadedMessages = allLoadedMessages.filter(m => !m.id.toString().startsWith('offline_'));
+              const existingMap = new Map(allLoadedMessages.map(m => [m.id, m]));
+              data.forEach(m => existingMap.set(m.id, m));
+              allLoadedMessages = Array.from(existingMap.values());
+              saveGlobalCache();
+              if (!document.getElementById('chatRoomScreen').classList.contains('hidden')) {
+                filterAndRenderMessages(false);
+              }
+            }
           }
-          saveGlobalCache();
-          filterAndRenderMessages(false);
         })
         .subscribe();
     }
@@ -1127,4 +1127,3 @@
   </script>
 </body>
 </html>
-
