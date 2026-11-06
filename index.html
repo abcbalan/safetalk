@@ -240,6 +240,7 @@
     let recordingTimerInterval = null;
     let recordingSeconds = 0;
     let countdownInterval = null;
+    let pollInterval = null;
 
     function encryptText(text) {
       if (text.startsWith('http') || text.startsWith('data:audio')) return text;
@@ -285,6 +286,7 @@
       setupUserInterface();
       renderConversationsList();
       subscribeToRealtime();
+      startPollingEngine();
       setupNetworkListener();
       processOfflineQueue();
       switchEmojiTab('smileys');
@@ -370,7 +372,7 @@
       document.getElementById('chatRoomScreen').classList.remove('hidden');
       document.getElementById('backBtn').classList.remove('hidden');
 
-      loadMessages();
+      loadMessagesFromCloud();
     }
 
     function returnToChatList() {
@@ -385,7 +387,7 @@
     }
 
     function getGlobalCacheKey() {
-      return `safetalk_global_messages_v2`;
+      return `safetalk_global_messages_v3_${currentUser.email}`;
     }
 
     function saveGlobalCache() {
@@ -394,41 +396,74 @@
       } catch(e) {}
     }
 
-    async function loadMessages() {
+    async function loadMessagesFromCloud() {
       const chatContainer = document.getElementById('chatMessages');
       
-      // Load from global local cache immediately so restart never shows blank screen
-      const globalCached = JSON.parse(localStorage.getItem(getGlobalCacheKey()) || '[]');
-      allLoadedMessages = globalCached;
-      filterAndRenderMessages();
-
-      if (globalCached.length === 0) {
+      // Load user-specific local cache instantly on open
+      const cached = JSON.parse(localStorage.getItem(getGlobalCacheKey()) || '[]');
+      if (cached.length > 0) {
+        allLoadedMessages = cached;
+        filterAndRenderMessages();
+      } else {
         chatContainer.innerHTML = '<div class="text-center text-slate-400 py-4"><i class="fas fa-spinner fa-spin mr-1"></i> Loading messages...</div>';
       }
 
       if (!navigator.onLine) return;
 
-      // Fix: Improved robust query for direct messages between users
-      let query = supabaseClient.from('messages').select('*');
-      if (currentChatType === 'group') {
-        query = query.eq('group_id', currentGroupId);
-      } else {
-        query = query.or(`and(sender_email.eq.${currentUser.email},recipient_email.eq.${currentRecipientEmail}),and(sender_email.eq.${currentRecipientEmail},recipient_email.eq.${currentUser.email})`);
-      }
+      // Always fetch latest from Supabase so clearing cache doesn't lose messages
+      const { data, error } = await supabaseClient
+        .from('messages')
+        .select('*')
+        .order('created_at', { ascending: true });
 
-      const { data, error } = await query.order('created_at', { ascending: true });
-      if (error) { 
-        console.error("Error loading messages from Supabase:", error); 
-        return; 
+      if (error) {
+        console.error("Error loading from Supabase:", error);
+        return;
       }
 
       if (data) {
-        const existingMap = new Map(allLoadedMessages.map(m => [m.id, m]));
-        data.forEach(m => existingMap.set(m.id, m));
-        allLoadedMessages = Array.from(existingMap.values());
+        allLoadedMessages = data;
         saveGlobalCache();
         filterAndRenderMessages();
       }
+    }
+
+    // Polling engine to guarantee messages sync instantly between Mum and Dad even if sockets fail
+    function startPollingEngine() {
+      if (pollInterval) clearInterval(pollInterval);
+      pollInterval = setInterval(async () => {
+        if (!navigator.onLine) return;
+        const { data, error } = await supabaseClient
+          .from('messages')
+          .select('*')
+          .order('created_at', { ascending: true });
+
+        if (!error && data) {
+          const existingLen = allLoadedMessages.length;
+          allLoadedMessages = data;
+          saveGlobalCache();
+          if (document.getElementById('chatRoomScreen').classList.contains('hidden') === false) {
+            filterAndRenderMessages();
+          } else {
+            // Check for unread counts
+            computeUnreadNotifications(data);
+          }
+        }
+      }, 3000);
+    }
+
+    function computeUnreadNotifications(messages) {
+      let updated = false;
+      messages.forEach(msg => {
+        if (msg.sender_email !== currentUser.email) {
+          const key = msg.channel_type === 'group' ? msg.group_id : msg.sender_email;
+          const isCurrentlyViewing = (currentChatType === msg.channel_type && (currentRecipientEmail === msg.sender_email || currentGroupId === msg.group_id));
+          if (!isCurrentlyViewing && !deletedMessageIds.includes(msg.id)) {
+            // Count if newer than last check
+            unreadCounts[key] = (unreadCounts[key] || 0);
+          }
+        }
+      });
     }
 
     function filterAndRenderMessages() {
@@ -436,7 +471,6 @@
       const validMsgs = allLoadedMessages.filter(msg => {
         if (deletedMessageIds.includes(msg.id)) return false;
         
-        // Strict chat filtering: Ensure message belongs to currently open room
         if (currentChatType === 'group') {
           if (msg.group_id !== currentGroupId) return false;
         } else {
@@ -820,22 +854,10 @@
         .channel('public:messages')
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, payload => {
           const msg = payload.new;
-          const isRelevant = 
-            (msg.channel_type === 'direct' && ((msg.sender_email === currentUser.email && msg.recipient_email === currentRecipientEmail) || (msg.sender_email === currentRecipientEmail && msg.recipient_email === currentUser.email))) ||
-            (msg.channel_type === 'group' && msg.group_id === currentGroupId);
-
-          if (msg.sender_email !== currentUser.email) {
-            const key = msg.channel_type === 'group' ? msg.group_id : msg.sender_email;
-            if (isRelevant) {
-              allLoadedMessages.push(msg);
-              saveGlobalCache();
-              filterAndRenderMessages();
-            } else {
-              unreadCounts[key] = (unreadCounts[key] || 0) + 1;
-              localStorage.setItem('safetalk_unread', JSON.stringify(unreadCounts));
-              updateAppBadge();
-              renderConversationsList();
-            }
+          if (!allLoadedMessages.some(m => m.id === msg.id)) {
+            allLoadedMessages.push(msg);
+            saveGlobalCache();
+            filterAndRenderMessages();
           }
         })
         .subscribe();
