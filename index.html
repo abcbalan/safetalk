@@ -413,8 +413,11 @@
       if (error) { console.error("Error loading messages:", error); return; }
 
       if (data) {
-        allLoadedMessages = data;
-        localStorage.setItem(getCacheKey(), JSON.stringify(data));
+        // Fix: Safely merge server data with local cache instead of replacing it entirely
+        const existingMap = new Map(allLoadedMessages.map(m => [m.id, m]));
+        data.forEach(m => existingMap.set(m.id, m));
+        allLoadedMessages = Array.from(existingMap.values());
+        localStorage.setItem(getCacheKey(), JSON.stringify(allLoadedMessages));
         filterAndRenderMessages();
       }
     }
@@ -423,7 +426,6 @@
       const nowMs = Date.now();
       const validMsgs = allLoadedMessages.filter(msg => {
         if (deletedMessageIds.includes(msg.id)) return false;
-        // Fix: Only filter out if expires_at is explicitly set and has passed
         if (msg.expires_at) {
           const expiryMs = new Date(msg.expires_at).getTime();
           if (!isNaN(expiryMs) && expiryMs <= nowMs) return false;
