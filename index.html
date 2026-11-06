@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>SafeTalk - Private Family Messenger</title>
+  <title>SafeTalk - Messenger</title>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
@@ -385,7 +385,7 @@
     }
 
     function getGlobalCacheKey() {
-      return `safetalk_global_messages_v5`;
+      return `safetalk_global_messages_v6`;
     }
 
     function saveGlobalCache() {
@@ -659,7 +659,6 @@
           const senderName = familyMembers.find(m => m.email === currentUser.email)?.name || currentUser.email.split('@')[0];
 
           const newMessage = {
-            id: 'msg_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6),
             sender_email: currentUser.email,
             sender_name: senderName,
             message_text: base64Audio,
@@ -670,13 +669,20 @@
             created_at: new Date().toISOString()
           };
 
-          allLoadedMessages.push(newMessage);
-          saveGlobalCache();
-          filterAndRenderMessages();
-
           if (navigator.onLine) {
-            await supabaseClient.from('messages').insert([newMessage]);
+            const { data, error } = await supabaseClient.from('messages').insert([newMessage]).select();
+            if (error) {
+              alert("Sync Error: " + error.message);
+            } else if (data && data[0]) {
+              allLoadedMessages.push(data[0]);
+              saveGlobalCache();
+              filterAndRenderMessages();
+            }
           } else {
+            newMessage.id = 'offline_' + Date.now();
+            allLoadedMessages.push(newMessage);
+            saveGlobalCache();
+            filterAndRenderMessages();
             queueOfflineMessage(newMessage);
           }
         };
@@ -694,7 +700,6 @@
       const senderName = familyMembers.find(m => m.email === currentUser.email)?.name || currentUser.email.split('@')[0];
 
       const newMessage = {
-        id: 'msg_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6),
         sender_email: currentUser.email,
         sender_name: senderName,
         message_text: cipherText,
@@ -705,14 +710,21 @@
         created_at: new Date().toISOString()
       };
 
-      allLoadedMessages.push(newMessage);
-      saveGlobalCache();
-      filterAndRenderMessages();
-
       if (navigator.onLine) {
-        const { error } = await supabaseClient.from('messages').insert([newMessage]);
-        if (error) console.error("Error sending message to Supabase:", error);
+        // Send directly to Supabase and pull back the official DB row (including real database ID)
+        const { data, error } = await supabaseClient.from('messages').insert([newMessage]).select();
+        if (error) {
+          alert("Database Error: " + error.message);
+        } else if (data && data[0]) {
+          allLoadedMessages.push(data[0]);
+          saveGlobalCache();
+          filterAndRenderMessages();
+        }
       } else {
+        newMessage.id = 'offline_' + Date.now();
+        allLoadedMessages.push(newMessage);
+        saveGlobalCache();
+        filterAndRenderMessages();
         queueOfflineMessage(newMessage);
       }
     }
@@ -730,10 +742,12 @@
       if (queue.length === 0) { updateSyncStatus(true); return; }
 
       for (let msg of queue) {
+        delete msg.id; // Let Supabase assign ID
         await supabaseClient.from('messages').insert([msg]);
       }
       localStorage.removeItem('safetalk_offline_queue');
       updateSyncStatus(true);
+      loadMessagesFromCloud();
     }
 
     function setupNetworkListener() {
@@ -853,7 +867,6 @@
       const senderName = familyMembers.find(m => m.email === currentUser.email)?.name || currentUser.email.split('@')[0];
 
       const newMessage = {
-        id: 'msg_' + Date.now() + '_' + Math.random().toString(36).substring(2, 6),
         sender_email: currentUser.email,
         sender_name: senderName,
         message_text: publicUrlData.publicUrl,
@@ -864,13 +877,13 @@
         created_at: new Date().toISOString()
       };
 
-      allLoadedMessages.push(newMessage);
-      saveGlobalCache();
-      filterAndRenderMessages();
-
-      if (navigator.onLine) {
-        await supabaseClient.from('messages').insert([newMessage]);
+      const { data, error } = await supabaseClient.from('messages').insert([newMessage]).select();
+      if (!error && data && data[0]) {
+        allLoadedMessages.push(data[0]);
+        saveGlobalCache();
+        filterAndRenderMessages();
       }
+
       closeImageModal();
       sendBtn.disabled = false; sendBtn.innerText = "Send Photo";
     }
