@@ -1,4 +1,4 @@
-<!-- 20261106 v4 Fix click hold in iphone issue -->
+<!-- 20261106 v5 Fix click hold in iphone issue -->
 <!-- Try to fix Delete for everyong the target user not delete.  -->
 <!-- Try to fix And if edit posted messaged -->
 
@@ -18,10 +18,11 @@
       margin: 0;
       padding: 0;
       overflow: hidden;
+      -webkit-touch-callout: none;
     }
 
-    .chat-bubble-me { background: #22c55e; color: white; border-bottom-right-radius: 4px; word-break: break-word; }
-    .chat-bubble-me-pending { background: #22c55e; color: white; opacity: 0.65; border-bottom-right-radius: 4px; word-break: break-word; border: 1.5px dashed #bbf7d0; }
+    .chat-bubble-me { background: #15803d; color: white; border-bottom-right-radius: 4px; word-break: break-word; }
+    .chat-bubble-me-pending { background: #15803d; color: white; opacity: 0.65; border-bottom-right-radius: 4px; word-break: break-word; border: 1.5px dashed #a7f3d0; }
     .chat-bubble-them { background: #ffffff; color: #0f172a; border-bottom-left-radius: 4px; border: 1px solid #e2e8f0; word-break: break-word; }
     
     body.text-sm-custom { font-size: 0.875rem; }
@@ -45,27 +46,27 @@
 <body id="appBody" class="bg-slate-100 font-sans h-full flex flex-col antialiased text-sm-custom select-none">
 
   <!-- TOP HEADER -->
-  <header class="bg-emerald-600 text-white px-4 py-2.5 flex items-center justify-between shadow-md shrink-0 z-30">
+  <header class="bg-emerald-800 text-white px-4 py-2.5 flex items-center justify-between shadow-md shrink-0 z-30">
     <div class="flex items-center space-x-3 min-w-0">
-      <button id="backBtn" onclick="returnToChatList()" class="hidden text-white mr-1 hover:text-emerald-100 transition shrink-0">
+      <button id="backBtn" onclick="returnToChatList()" class="hidden text-white mr-1 hover:text-emerald-200 transition shrink-0">
         <i class="fas fa-arrow-left"></i>
       </button>
       
-      <div id="headerAvatar" class="w-9 h-9 rounded-full bg-emerald-500 flex items-center justify-center font-bold text-white shadow border border-emerald-400 shrink-0">
+      <div id="headerAvatar" class="w-9 h-9 rounded-full bg-emerald-600 flex items-center justify-center font-bold text-white shadow border border-emerald-500 shrink-0">
         <i class="fas fa-shield-halved"></i>
       </div>
       <div class="min-w-0">
         <h1 class="font-bold leading-tight flex items-center gap-2 truncate" id="activeChatTitle">
           SafeTalk Chats
-          <span class="bg-emerald-700 text-emerald-100 text-[10px] px-2 py-0.5 rounded-full border border-emerald-500 font-medium shrink-0">Encrypted</span>
+          <span class="bg-emerald-950 text-emerald-300 text-[10px] px-2 py-0.5 rounded-full border border-emerald-700 font-medium shrink-0">Encrypted</span>
         </h1>
-        <p class="text-emerald-100 opacity-90 text-xs truncate" id="activeChatSub">Select a conversation to start</p>
+        <p class="text-emerald-200 opacity-90 text-xs truncate" id="activeChatSub">Select a conversation to start</p>
       </div>
     </div>
 
     <div class="flex items-center space-x-2 shrink-0">
-      <span id="syncStatusIndicator" class="w-2.5 h-2.5 rounded-full bg-emerald-300" title="Online & Synced"></span>
-      <div id="currentUserBadge" class="text-emerald-100 bg-emerald-700 px-2.5 py-1 rounded-lg border border-emerald-500 font-medium text-xs">
+      <span id="syncStatusIndicator" class="w-2.5 h-2.5 rounded-full bg-emerald-400" title="Online & Synced"></span>
+      <div id="currentUserBadge" class="text-emerald-100 bg-emerald-900 px-2.5 py-1 rounded-lg border border-emerald-700 font-medium text-xs">
         Connecting...
       </div>
     </div>
@@ -78,10 +79,10 @@
     <div id="chatsListScreen" class="w-full md:w-80 bg-white border-r border-slate-200 flex flex-col shrink-0 h-full absolute md:relative z-20 inset-0">
       <div class="p-3 bg-slate-50 border-b border-slate-100 flex flex-col gap-2 shrink-0">
         <div class="relative">
-          <input type="text" id="chatSearchInput" oninput="filterChatList(this.value)" placeholder="Search conversations..." class="w-full bg-white px-3 py-2 pl-8 rounded-xl border border-slate-300 focus:outline-none focus:ring-1 focus:ring-emerald-500 text-xs">
+          <input type="text" id="chatSearchInput" oninput="filterChatList(this.value)" placeholder="Search conversations..." class="w-full bg-white px-3 py-2 pl-8 rounded-xl border border-slate-300 focus:outline-none focus:ring-1 focus:ring-emerald-600 text-xs">
           <i class="fas fa-search absolute left-2.5 top-3 text-slate-400"></i>
         </div>
-        <button onclick="openGroupCreateModal()" class="w-full py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-xl shadow transition flex items-center justify-center space-x-1.5 text-xs">
+        <button onclick="openGroupCreateModal()" class="w-full py-2 bg-emerald-700 hover:bg-emerald-800 text-white font-semibold rounded-xl shadow transition flex items-center justify-center space-x-1.5 text-xs">
           <i class="fas fa-plus"></i>
           <span>Create New Group</span>
         </button>
@@ -126,7 +127,7 @@
           <span class="w-3 h-3 rounded-full bg-red-500 animate-ping"></span>
           <span class="font-bold text-slate-700 text-xs" id="recordingTimer">Recording: 0s</span>
         </div>
-        <button type="button" onclick="stopAndSendVoice()" class="px-3 py-1 bg-emerald-600 text-white font-bold rounded-lg shadow hover:bg-emerald-700 text-xs">
+        <button type="button" onclick="stopAndSendVoice()" class="px-3 py-1 bg-emerald-700 text-white font-bold rounded-lg shadow hover:bg-emerald-800 text-xs">
           <i class="fas fa-paper-plane mr-1"></i> Send Voice
         </button>
       </div>
@@ -134,7 +135,7 @@
       <!-- EMOJI PICKER -->
       <div id="emojiPicker" class="hidden bg-white border-t border-slate-200 flex flex-col max-h-48 overflow-y-auto p-2 shadow-inner shrink-0">
         <div id="emojiTabNav" class="flex gap-3 border-b border-slate-200 pb-1 mb-2 text-slate-500 overflow-x-auto shrink-0 text-xs">
-          <button type="button" onclick="switchEmojiTab('smileys')" id="tab_smileys" class="font-bold text-emerald-600 pb-0.5 border-b-2 border-emerald-500 shrink-0">Smileys</button>
+          <button type="button" onclick="switchEmojiTab('smileys')" id="tab_smileys" class="font-bold text-emerald-700 pb-0.5 border-b-2 border-emerald-600 shrink-0">Smileys</button>
           <button type="button" onclick="switchEmojiTab('gestures')" id="tab_gestures" class="text-slate-500 hover:text-slate-800 pb-0.5 shrink-0">Gestures</button>
           <button type="button" onclick="switchEmojiTab('hearts')" id="tab_hearts" class="text-slate-500 hover:text-slate-800 pb-0.5 shrink-0">Hearts</button>
           <button type="button" onclick="switchEmojiTab('animals')" id="tab_animals" class="text-slate-500 hover:text-slate-800 pb-0.5 shrink-0">Animals</button>
@@ -153,7 +154,7 @@
             <input type="file" id="chatImageInput" accept="image/*" class="hidden" onchange="handleImageSelected(event)">
           </label>
 
-          <button type="button" id="micBtn" onclick="toggleVoiceRecording()" class="p-2.5 bg-slate-100 hover:bg-slate-200 text-emerald-600 rounded-full transition flex items-center justify-center shrink-0" title="Record Voice">
+          <button type="button" id="micBtn" onclick="toggleVoiceRecording()" class="p-2.5 bg-slate-100 hover:bg-slate-200 text-emerald-700 rounded-full transition flex items-center justify-center shrink-0" title="Record Voice">
             <i class="fas fa-microphone text-sm"></i>
           </button>
 
@@ -161,14 +162,52 @@
             <i class="fas fa-face-smile text-sm"></i>
           </button>
 
-          <input type="text" id="messageInput" placeholder="SafeTalk message..." class="flex-1 px-4 py-2 border border-slate-300 rounded-full focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white text-xs">
+          <input type="text" id="messageInput" placeholder="SafeTalk message..." class="flex-1 px-4 py-2 border border-slate-300 rounded-full focus:outline-none focus:ring-2 focus:ring-emerald-600 bg-white text-xs">
           
-          <button type="submit" id="sendSubmitBtn" class="w-9 h-9 bg-emerald-600 hover:bg-emerald-700 text-white rounded-full shadow transition flex items-center justify-center shrink-0">
+          <button type="submit" id="sendSubmitBtn" class="w-9 h-9 bg-emerald-700 hover:bg-emerald-800 text-white rounded-full shadow transition flex items-center justify-center shrink-0">
             <i class="fas fa-paper-plane text-xs"></i>
           </button>
         </div>
       </form>
     </main>
+  </div>
+
+  <!-- ACTION MENU MODAL / SHEET (Centered safely with max height to avoid cutoff) -->
+  <div id="actionMenuModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4" onclick="closeActionMenu()">
+    <div class="bg-white w-full max-w-xs rounded-2xl shadow-2xl p-5 flex flex-col gap-3 my-auto max-h-[90vh] overflow-y-auto" onclick="event.stopPropagation()">
+      <div class="text-xs font-bold text-slate-400 uppercase tracking-wider text-center mb-1">Message Options</div>
+      
+      <!-- Quick Reactions Row -->
+      <div class="flex justify-around bg-slate-50 p-2 rounded-xl border border-slate-100 text-xl">
+        <button type="button" onclick="addReaction('❤️')" class="hover:scale-125 transition">❤️</button>
+        <button type="button" onclick="addReaction('👍')" class="hover:scale-125 transition">👍</button>
+        <button type="button" onclick="addReaction('😂')" class="hover:scale-125 transition">😂</button>
+        <button type="button" onclick="addReaction('🎉')" class="hover:scale-125 transition">🎉</button>
+        <button type="button" onclick="addReaction('🙏')" class="hover:scale-125 transition">🙏</button>
+      </div>
+
+      <button type="button" onclick="copyActiveMessage()" class="w-full py-2.5 px-3 bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold rounded-xl text-xs flex items-center space-x-2.5 transition">
+        <i class="fas fa-copy text-slate-500 w-4"></i>
+        <span>Copy Text</span>
+      </button>
+
+      <button type="button" id="editMessageBtn" onclick="prepareEditActiveMessage()" class="w-full py-2.5 px-3 bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold rounded-xl text-xs flex items-center space-x-2.5 transition">
+        <i class="fas fa-pen text-slate-500 w-4"></i>
+        <span>Edit Message</span>
+      </button>
+
+      <button type="button" onclick="deleteActiveMessage('me')" class="w-full py-2.5 px-3 bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold rounded-xl text-xs flex items-center space-x-2.5 transition">
+        <i class="fas fa-trash-can text-slate-500 w-4"></i>
+        <span>Delete for Me</span>
+      </button>
+
+      <button type="button" id="deleteEveryoneBtn" onclick="deleteActiveMessage('everyone')" class="w-full py-2.5 px-3 bg-red-50 hover:bg-red-100 text-red-600 font-bold rounded-xl text-xs hidden items-center space-x-2.5 transition">
+        <i class="fas fa-ban w-4"></i>
+        <span>Delete for Everyone</span>
+      </button>
+
+      <button type="button" onclick="closeActionMenu()" class="w-full py-2.5 bg-slate-200 hover:bg-slate-300 text-slate-700 font-bold rounded-xl text-xs mt-1 transition">Cancel</button>
+    </div>
   </div>
 
   <!-- GROUP CREATION MODAL -->
@@ -181,8 +220,8 @@
       <div id="groupMembersSelector" class="space-y-2 max-h-40 overflow-y-auto mb-4 border border-slate-100 p-2 rounded-xl text-xs"></div>
 
       <div class="flex gap-2 w-full">
-        <button onclick="closeGroupModal()" class="flex-1 py-2.5 bg-slate-200 text-slate-700 font-bold rounded-xl text-xs">Cancel</button>
-        <button onclick="confirmCreateGroup()" class="flex-1 py-2.5 bg-emerald-600 text-white font-bold rounded-xl shadow text-xs">Create Group</button>
+        <button type="button" onclick="closeGroupModal()" class="flex-1 py-2.5 bg-slate-200 text-slate-700 font-bold rounded-xl text-xs">Cancel</button>
+        <button type="button" onclick="confirmCreateGroup()" class="flex-1 py-2.5 bg-emerald-700 text-white font-bold rounded-xl shadow text-xs">Create Group</button>
       </div>
     </div>
   </div>
@@ -195,8 +234,8 @@
         <img id="modalImagePreview" class="w-full h-full object-cover" src="" alt="Preview">
       </div>
       <div class="flex gap-2 w-full">
-        <button onclick="closeImageModal()" class="flex-1 py-2.5 bg-slate-200 text-slate-700 font-bold rounded-xl text-xs">Cancel</button>
-        <button onclick="confirmAndSendImage()" id="sendImageBtn" class="flex-1 py-2.5 bg-emerald-600 text-white font-bold rounded-xl shadow text-xs">Send Photo</button>
+        <button type="button" onclick="closeImageModal()" class="flex-1 py-2.5 bg-slate-200 text-slate-700 font-bold rounded-xl text-xs">Cancel</button>
+        <button type="button" onclick="confirmAndSendImage()" id="sendImageBtn" class="flex-1 py-2.5 bg-emerald-700 text-white font-bold rounded-xl shadow text-xs">Send Photo</button>
       </div>
     </div>
   </div>
@@ -245,7 +284,9 @@
     let recordingSeconds = 0;
     let countdownInterval = null;
     let pollInterval = null;
-    let editingMessageId = null; // Track if we are currently editing a message
+    let activeSelectedMsgId = null;
+    let editingMessageId = null; // Track message being edited in-place
+    let shouldAutoScroll = true; // Prevents forced auto-scroll when reading history
 
     function encryptText(text) {
       if (text.startsWith('http') || text.startsWith('data:audio')) return text;
@@ -298,10 +339,10 @@
     }
 
     function setupUserInterface() {
-      const member = familyMembers.find(m => m.email === currentUser.email) || { name: currentUser.email.split('@')[0], icon: "fa-user", bg: "bg-emerald-500" };
+      const member = familyMembers.find(m => m.email === currentUser.email) || { name: currentUser.email.split('@')[0], icon: "fa-user", bg: "bg-emerald-600" };
       document.getElementById('currentUserBadge').innerText = `👤 ${member.name}`;
       document.getElementById('headerAvatar').innerHTML = `<i class="fas ${member.icon}"></i>`;
-      document.getElementById('headerAvatar').className = `w-9 h-9 rounded-full ${member.bg} flex items-center justify-center font-bold text-white shadow border border-emerald-400 shrink-0`;
+      document.getElementById('headerAvatar').className = `w-9 h-9 rounded-full ${member.bg} flex items-center justify-center font-bold text-white shadow border border-emerald-500 shrink-0`;
     }
 
     function renderConversationsList(filter = '') {
@@ -313,9 +354,9 @@
           const div = document.createElement('div');
           const isUnread = (unreadCounts[grp.id] || 0) > 0;
           div.className = `p-3.5 hover:bg-slate-50 cursor-pointer transition flex items-center space-x-3 ${isUnread ? 'bg-emerald-50/60 font-bold' : ''}`;
-          div.onclick = () => openChatRoom('group', grp.id, grp.name, 'bg-emerald-600', 'fa-users');
+          div.onclick = () => openChatRoom('group', grp.id, grp.name, 'bg-emerald-700', 'fa-users');
           div.innerHTML = `
-            <div class="w-11 h-11 rounded-full bg-emerald-600 flex items-center justify-center text-white font-bold shrink-0 shadow-sm relative">
+            <div class="w-11 h-11 rounded-full bg-emerald-700 flex items-center justify-center text-white font-bold shrink-0 shadow-sm relative">
               <i class="fas fa-users"></i>
               ${isUnread ? `<span class="absolute -top-1 -right-1 bg-red-500 text-white w-4 h-4 rounded-full flex items-center justify-center font-bold" style="font-size: 0.7em;">${unreadCounts[grp.id]}</span>` : ''}
             </div>
@@ -370,12 +411,13 @@
       document.getElementById('activeChatTitle').innerText = name;
       document.getElementById('activeChatSub').innerText = type === 'group' ? "Custom Group Chat" : "Direct Message";
       document.getElementById('headerAvatar').innerHTML = `<i class="fas ${iconClass}"></i>`;
-      document.getElementById('headerAvatar').className = `w-9 h-9 rounded-full ${bgClass} flex items-center justify-center font-bold text-white shadow border border-emerald-400 shrink-0`;
+      document.getElementById('headerAvatar').className = `w-9 h-9 rounded-full ${bgClass} flex items-center justify-center font-bold text-white shadow border border-emerald-500 shrink-0`;
 
       document.getElementById('chatsListScreen').classList.add('hidden', 'md:flex');
       document.getElementById('chatRoomScreen').classList.remove('hidden');
       document.getElementById('backBtn').classList.remove('hidden');
 
+      shouldAutoScroll = true;
       loadMessagesFromCloud();
     }
 
@@ -391,7 +433,7 @@
     }
 
     function getGlobalCacheKey() {
-      return `safetalk_global_messages_v13`;
+      return `safetalk_global_messages_v14`;
     }
 
     function saveGlobalCache() {
@@ -445,13 +487,13 @@
           saveGlobalCache();
           
           if (!document.getElementById('chatRoomScreen').classList.contains('hidden')) {
-            filterAndRenderMessages();
+            filterAndRenderMessages(false); // Do not force scroll when polling in background
           }
         }
       }, 2000);
     }
 
-    function filterAndRenderMessages() {
+    function filterAndRenderMessages(forceScroll = false) {
       const nowMs = Date.now();
       const validMsgs = allLoadedMessages.filter(msg => {
         if (deletedMessageIds.includes(msg.id)) return false;
@@ -471,7 +513,7 @@
         }
         return true;
       });
-      renderFilteredMessages(validMsgs);
+      renderFilteredMessages(validMsgs, forceScroll);
     }
 
     function filterMessageHistory() {
@@ -495,22 +537,38 @@
       });
 
       if (!query) {
-        renderFilteredMessages(validMsgs);
+        renderFilteredMessages(validMsgs, false);
         return;
       }
       const filtered = validMsgs.filter(msg => {
         const text = msg.message_text.startsWith('http') || msg.message_text.startsWith('data:audio') ? '' : decryptText(msg.message_text).toLowerCase();
         return text.includes(query) || msg.sender_name.toLowerCase().includes(query);
       });
-      renderFilteredMessages(filtered);
+      renderFilteredMessages(filtered, false);
     }
 
-    function renderFilteredMessages(messages) {
+    function renderFilteredMessages(messages, forceScroll = false) {
       const chatContainer = document.getElementById('chatMessages');
       chatContainer.innerHTML = '';
       messages.forEach(msg => renderSingleMessage(msg));
-      scrollToBottom();
+      
+      if (shouldAutoScroll || forceScroll) {
+        scrollToBottom();
+      }
     }
+
+    // Track user scroll position so background polling doesn't forcefully scroll them back down
+    document.addEventListener('DOMContentLoaded', () => {
+      const chatContainer = document.getElementById('chatMessages');
+      if (chatContainer) {
+        chatContainer.addEventListener('scroll', () => {
+          const threshold = 40;
+          const isAtBottom = chatContainer.scrollHeight - chatContainer.scrollTop - chatContainer.clientHeight <= threshold;
+          shouldAutoScroll = isAtBottom;
+        });
+      }
+      initApp();
+    });
 
     function computeExpiryTimestamp() {
       const retentionVal = document.getElementById('retentionSelect').value;
@@ -558,7 +616,7 @@
       } else if (isVoice) {
         contentHtml = `
           <div class="flex items-center space-x-2 py-1">
-            <i class="fas fa-play text-emerald-500 cursor-pointer" onclick="this.nextElementSibling.play()"></i>
+            <i class="fas fa-play text-emerald-600 cursor-pointer" onclick="this.nextElementSibling.play()"></i>
             <audio controls src="${displayText}" class="h-8 max-w-[180px]"></audio>
           </div>
         `;
@@ -568,108 +626,133 @@
 
       const bubbleClass = isOfflinePending ? 'chat-bubble-me-pending' : (isMe ? 'chat-bubble-me' : 'chat-bubble-them');
 
+      const bubbleEl = document.createElement('div');
+      bubbleEl.className = `max-w-[80%] px-3.5 py-2.5 rounded-2xl shadow-sm relative cursor-pointer ${bubbleClass}`;
+      bubbleEl.innerHTML = contentHtml;
+
+      // Reliable iPhone & PC Click & Hold / Right Click Handlers
+      let pressTimer = null;
+      let startX = 0;
+      let startY = 0;
+
+      const triggerActionMenu = (e) => {
+        e.preventDefault();
+        openActionMenu(msg.id, isMe);
+      };
+
+      bubbleEl.addEventListener('mousedown', (e) => {
+        if (e.button === 2) { triggerActionMenu(e); return; }
+        pressTimer = setTimeout(() => triggerActionMenu(e), 500);
+      });
+      bubbleEl.addEventListener('mouseup', () => clearTimeout(pressTimer));
+      bubbleEl.addEventListener('mousemove', () => clearTimeout(pressTimer));
+
+      bubbleEl.addEventListener('touchstart', (e) => {
+        startX = e.touches[0].clientX;
+        startY = e.touches[0].clientY;
+        pressTimer = setTimeout(() => {
+          triggerActionMenu(e);
+        }, 500);
+      }, { passive: true });
+
+      bubbleEl.addEventListener('touchmove', (e) => {
+        const moveX = e.touches[0].clientX;
+        const moveY = e.touches[0].clientY;
+        if (Math.abs(moveX - startX) > 10 || Math.abs(moveY - startY) > 10) {
+          clearTimeout(pressTimer);
+        }
+      }, { passive: true });
+
+      bubbleEl.addEventListener('touchend', () => clearTimeout(pressTimer));
+      bubbleEl.addEventListener('contextmenu', (e) => e.preventDefault());
+
       wrapper.innerHTML = `
         <span class="text-slate-400 mb-0.5 px-1" style="font-size: 0.75em;">${isMe ? 'You' : msg.sender_name} • ${timeTag}${statusSuffix} <span class="text-amber-600 font-medium countdown-tag" data-expires="${msg.expires_at || ''}">${countdownStr}</span></span>
-        <div class="max-w-[80%] px-3.5 py-2.5 rounded-2xl shadow-sm relative ${bubbleClass}">
-          ${contentHtml}
-          <button onclick="toggleOptionsMenu(event, '${msg.id}')" class="absolute ${isMe ? '-left-6' : '-right-6'} top-2 opacity-0 group-hover:opacity-100 transition text-slate-400 hover:text-slate-700 px-1">
-            <i class="fas fa-ellipsis-v"></i>
-          </button>
-          
-          <!-- OPTIONS DROPDOWN MENU -->
-          <div id="optionsMenu_${msg.id}" class="hidden absolute ${isMe ? 'right-0' : 'left-0'} top-8 bg-white text-slate-800 rounded-xl shadow-xl border border-slate-200 py-1 z-30 w-48">
-            <div class="px-3 py-1.5 font-bold text-[10px] text-slate-400 uppercase tracking-wider border-b border-slate-100">React</div>
-            <div class="flex justify-around p-1.5 text-base border-b border-slate-100">
-              <span onclick="addReaction('${msg.id}', '❤️')" class="cursor-pointer hover:scale-125 transition">❤️</span>
-              <span onclick="addReaction('${msg.id}', '👍')" class="cursor-pointer hover:scale-125 transition">👍</span>
-              <span onclick="addReaction('${msg.id}', '😂')" class="cursor-pointer hover:scale-125 transition">😂</span>
-              <span onclick="addReaction('${msg.id}', '🎉')" class="cursor-pointer hover:scale-125 transition">🎉</span>
-            </div>
-            <button onclick="copyMessageText('${msg.id}')" class="w-full text-left px-3 py-2 hover:bg-slate-100 text-slate-700 text-xs flex items-center space-x-2">
-              <i class="fas fa-copy w-4 text-slate-400"></i><span>Copy Text</span>
-            </button>
-            ${isMe ? `
-              <button onclick="startEditMessage('${msg.id}')" class="w-full text-left px-3 py-2 hover:bg-slate-100 text-slate-700 text-xs flex items-center space-x-2">
-                <i class="fas fa-pen w-4 text-slate-400"></i><span>Edit Message</span>
-              </button>
-            ` : ''}
-            <button onclick="deleteMessage('${msg.id}', 'me')" class="w-full text-left px-3 py-2 hover:bg-slate-100 text-slate-700 text-xs flex items-center space-x-2">
-              <i class="fas fa-trash-can w-4 text-slate-400"></i><span>Delete for Me</span>
-            </button>
-            ${isMe ? `
-              <button onclick="deleteMessage('${msg.id}', 'everyone')" class="w-full text-left px-3 py-2 hover:bg-red-50 text-red-600 font-semibold text-xs flex items-center space-x-2">
-                <i class="fas fa-ban w-4"></i><span>Delete for Everyone</span>
-              </button>
-            ` : ''}
-          </div>
-        </div>
       `;
-
+      wrapper.appendChild(bubbleEl);
       chatContainer.appendChild(wrapper);
-      scrollToBottom();
     }
 
-    function toggleOptionsMenu(e, msgId) {
-      e.stopPropagation();
-      document.querySelectorAll('[id^="optionsMenu_"]').forEach(m => {
-        if (m.id !== `optionsMenu_${msgId}`) m.classList.add('hidden');
-      });
-      const menu = document.getElementById(`optionsMenu_${msgId}`);
-      menu.classList.toggle('hidden');
+    function openActionMenu(msgId, isMe) {
+      activeSelectedMsgId = msgId;
+      const deleteEveryoneBtn = document.getElementById('deleteEveryoneBtn');
+      const editBtn = document.getElementById('editMessageBtn');
+
+      if (isMe) {
+        deleteEveryoneBtn.classList.remove('hidden');
+        deleteEveryoneBtn.classList.add('flex');
+        editBtn.classList.remove('hidden');
+        editBtn.classList.add('flex');
+      } else {
+        deleteEveryoneBtn.classList.add('hidden');
+        deleteEveryoneBtn.classList.remove('flex');
+        editBtn.classList.add('hidden');
+        editBtn.classList.remove('flex');
+      }
+      document.getElementById('actionMenuModal').classList.remove('hidden');
     }
 
-    document.addEventListener('click', () => {
-      document.querySelectorAll('[id^="optionsMenu_"]').forEach(m => m.classList.add('hidden'));
-    });
+    function closeActionMenu() {
+      document.getElementById('actionMenuModal').classList.add('hidden');
+      activeSelectedMsgId = null;
+    }
 
-    function copyMessageText(msgId) {
-      const msg = allLoadedMessages.find(m => m.id === msgId);
+    function copyActiveMessage() {
+      const msg = allLoadedMessages.find(m => m.id === activeSelectedMsgId);
       if (msg) {
         const text = decryptText(msg.message_text);
         navigator.clipboard.writeText(text).then(() => {
           alert("Message copied to clipboard!");
         });
       }
+      closeActionMenu();
     }
 
-    function startEditMessage(msgId) {
-      const msg = allLoadedMessages.find(m => m.id === msgId);
+    function prepareEditActiveMessage() {
+      const msg = allLoadedMessages.find(m => m.id === activeSelectedMsgId);
       if (msg) {
-        editingMessageId = msgId;
+        editingMessageId = activeSelectedMsgId;
         const text = decryptText(msg.message_text);
         const input = document.getElementById('messageInput');
         input.value = text;
         input.focus();
         document.getElementById('sendSubmitBtn').innerHTML = '<i class="fas fa-check text-xs"></i>';
       }
+      closeActionMenu();
     }
 
-    async function addReaction(msgId, emoji) {
-      const msg = allLoadedMessages.find(m => m.id === msgId);
+    async function addReaction(emoji) {
+      if (!activeSelectedMsgId) return;
+      const msg = allLoadedMessages.find(m => m.id === activeSelectedMsgId);
       if (msg) {
         const currentText = decryptText(msg.message_text);
         if (!currentText.includes(emoji)) {
           const updatedText = `${currentText} ${emoji}`;
           msg.message_text = encryptText(updatedText);
           saveGlobalCache();
-          filterAndRenderMessages();
+          filterAndRenderMessages(false);
 
-          if (navigator.onLine && !msgId.toString().startsWith('offline_')) {
-            await supabaseClient.from('messages').update({ message_text: msg.message_text }).eq('id', msgId);
+          if (navigator.onLine && !msg.id.toString().startsWith('offline_')) {
+            await supabaseClient.from('messages').update({ message_text: msg.message_text }).eq('id', msg.id);
           }
         }
       }
+      closeActionMenu();
     }
 
-    async function deleteMessage(msgId, scope) {
+    async function deleteActiveMessage(scope) {
+      if (!activeSelectedMsgId) return;
+      const msgId = activeSelectedMsgId;
+      closeActionMenu();
+
       deletedMessageIds.push(msgId);
       localStorage.setItem('safetalk_deleted_local', JSON.stringify(deletedMessageIds));
-      filterAndRenderMessages();
+      filterAndRenderMessages(false);
 
       if (scope === 'everyone' && navigator.onLine && !msgId.toString().startsWith('offline_')) {
         const { error } = await supabaseClient.from('messages').delete().eq('id', msgId);
         if (error) {
-          alert("Could not delete for everyone: " + error.message);
+          alert("Could not delete message for everyone: " + error.message);
         }
       }
     }
@@ -694,7 +777,7 @@
         });
 
         if (needsRefresh) {
-          filterAndRenderMessages();
+          filterAndRenderMessages(false);
         }
       }, 1000);
     }
@@ -750,12 +833,13 @@
             created_at: new Date().toISOString()
           };
 
+          shouldAutoScroll = true;
           if (navigator.onLine) {
             const { data, error } = await supabaseClient.from('messages').insert([newMessage]).select();
             if (!error && data && data[0]) {
               allLoadedMessages.push(data[0]);
               saveGlobalCache();
-              filterAndRenderMessages();
+              filterAndRenderMessages(true);
               return;
             }
           }
@@ -763,7 +847,7 @@
           newMessage.id = 'offline_' + Date.now();
           allLoadedMessages.push(newMessage);
           saveGlobalCache();
-          filterAndRenderMessages();
+          filterAndRenderMessages(true);
           queueOfflineMessage(newMessage);
         };
       };
@@ -788,7 +872,7 @@
         if (msgObj) {
           msgObj.message_text = cipherText;
           saveGlobalCache();
-          filterAndRenderMessages();
+          filterAndRenderMessages(false);
 
           if (navigator.onLine && !msgId.toString().startsWith('offline_')) {
             await supabaseClient.from('messages').update({ message_text: cipherText }).eq('id', msgId);
@@ -810,12 +894,13 @@
         created_at: new Date().toISOString()
       };
 
+      shouldAutoScroll = true;
       if (navigator.onLine) {
         const { data, error } = await supabaseClient.from('messages').insert([newMessage]).select();
         if (!error && data && data[0]) {
           allLoadedMessages.push(data[0]);
           saveGlobalCache();
-          filterAndRenderMessages();
+          filterAndRenderMessages(true);
           return;
         }
       }
@@ -823,7 +908,7 @@
       newMessage.id = 'offline_' + Date.now();
       allLoadedMessages.push(newMessage);
       saveGlobalCache();
-      filterAndRenderMessages();
+      filterAndRenderMessages(true);
       queueOfflineMessage(newMessage);
     }
 
@@ -856,7 +941,7 @@
 
     function updateSyncStatus(isOnline) {
       const ind = document.getElementById('syncStatusIndicator');
-      ind.className = `w-2.5 h-2.5 rounded-full ${isOnline ? 'bg-emerald-300' : 'bg-amber-400 animate-pulse'}`;
+      ind.className = `w-2.5 h-2.5 rounded-full ${isOnline ? 'bg-emerald-400' : 'bg-amber-400 animate-pulse'}`;
     }
 
     function openGroupCreateModal() {
@@ -866,7 +951,7 @@
         if (m.email !== currentUser.email) {
           container.innerHTML += `
             <label class="flex items-center space-x-2 text-slate-700 cursor-pointer">
-              <input type="checkbox" value="${m.email}" class="group-member-checkbox text-emerald-500 rounded">
+              <input type="checkbox" value="${m.email}" class="group-member-checkbox text-emerald-600 rounded">
               <span>${m.name}</span>
             </label>
           `;
@@ -904,7 +989,7 @@
         const btn = document.getElementById(`tab_${k}`);
         if (btn) {
           if (k === tabKey) {
-            btn.className = "font-bold text-emerald-600 pb-0.5 border-b-2 border-emerald-500 shrink-0";
+            btn.className = "font-bold text-emerald-700 pb-0.5 border-b-2 border-emerald-600 shrink-0";
           } else {
             btn.className = "text-slate-500 hover:text-slate-800 pb-0.5 shrink-0";
           }
@@ -976,11 +1061,12 @@
         created_at: new Date().toISOString()
       };
 
+      shouldAutoScroll = true;
       const { data, error } = await supabaseClient.from('messages').insert([newMessage]).select();
       if (!error && data && data[0]) {
         allLoadedMessages.push(data[0]);
         saveGlobalCache();
-        filterAndRenderMessages();
+        filterAndRenderMessages(true);
       }
 
       closeImageModal();
@@ -1004,8 +1090,6 @@
       const chatContainer = document.getElementById('chatMessages');
       chatContainer.scrollTop = chatContainer.scrollHeight;
     }
-
-    document.addEventListener('DOMContentLoaded', initApp);
   </script>
 </body>
 </html>
