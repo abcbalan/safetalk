@@ -1,3 +1,5 @@
+<!-- 20261106 Fixed offline duplicate message issue -->
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -385,7 +387,7 @@
     }
 
     function getGlobalCacheKey() {
-      return `safetalk_global_messages_v7`;
+      return `safetalk_global_messages_v8`;
     }
 
     function saveGlobalCache() {
@@ -413,6 +415,8 @@
         .order('created_at', { ascending: true });
 
       if (!error && data) {
+        // Remove local offline tags so they don't duplicate with cloud entries
+        allLoadedMessages = allLoadedMessages.filter(m => !m.id.toString().startsWith('offline_'));
         const existingMap = new Map(allLoadedMessages.map(m => [m.id, m]));
         data.forEach(m => existingMap.set(m.id, m));
         allLoadedMessages = Array.from(existingMap.values());
@@ -431,6 +435,7 @@
           .order('created_at', { ascending: true });
 
         if (!error && data) {
+          allLoadedMessages = allLoadedMessages.filter(m => !m.id.toString().startsWith('offline_'));
           const existingMap = new Map(allLoadedMessages.map(m => [m.id, m]));
           data.forEach(m => existingMap.set(m.id, m));
           allLoadedMessages = Array.from(existingMap.values());
@@ -824,7 +829,7 @@
     }
 
     function toggleEmojiPicker() {
-      document.getElementById('emojiPicker').classList.toggle('hidden');
+      document.getElementById('emojiPicker').classList.add('hidden');
     }
 
     function insertEmoji(emoji) {
