@@ -1,4 +1,4 @@
-<!-- 20261106 Fixed offline duplicate message issue -->
+<!-- 20261106 Seamless Offline Pending Messages with Faded UI -->
 
 <!DOCTYPE html>
 <html lang="en">
@@ -19,6 +19,7 @@
     }
 
     .chat-bubble-me { background: #15803d; color: white; border-bottom-right-radius: 4px; word-break: break-word; }
+    .chat-bubble-me-pending { background: #15803d; color: white; opacity: 0.65; border-bottom-right-radius: 4px; word-break: break-word; border: 1.5px dashed #a7f3d0; }
     .chat-bubble-them { background: #ffffff; color: #0f172a; border-bottom-left-radius: 4px; border: 1px solid #e2e8f0; word-break: break-word; }
     
     body.text-sm-custom { font-size: 0.875rem; }
@@ -387,7 +388,7 @@
     }
 
     function getGlobalCacheKey() {
-      return `safetalk_global_messages_v8`;
+      return `safetalk_global_messages_v9`;
     }
 
     function saveGlobalCache() {
@@ -415,7 +416,6 @@
         .order('created_at', { ascending: true });
 
       if (!error && data) {
-        // Remove local offline tags so they don't duplicate with cloud entries
         allLoadedMessages = allLoadedMessages.filter(m => !m.id.toString().startsWith('offline_'));
         const existingMap = new Map(allLoadedMessages.map(m => [m.id, m]));
         data.forEach(m => existingMap.set(m.id, m));
@@ -534,6 +534,7 @@
     function renderSingleMessage(msg) {
       const chatContainer = document.getElementById('chatMessages');
       const isMe = msg.sender_email === currentUser.email;
+      const isOfflinePending = msg.id && msg.id.toString().startsWith('offline_');
       const isImage = msg.message_text.startsWith('http') && !msg.message_text.includes('.webm') && !msg.message_text.includes('.mp3');
       const isVoice = msg.message_text.startsWith('data:audio') || msg.message_text.includes('.webm') || msg.message_text.includes('.mp3');
       
@@ -541,6 +542,7 @@
       displayText = displayText.replace(/([\u{1F300}-\u{1F9FF}]|[\u{2600}-\u{26FF}])/gu, '<span class="animated-emoji">$1</span>');
 
       const timeTag = new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+      const statusSuffix = isOfflinePending ? ' ⏳ (Pending)' : '';
       const countdownStr = msg.expires_at ? `⏳ ${getRemainingTimeStr(msg.expires_at)}` : '';
 
       const wrapper = document.createElement('div');
@@ -561,9 +563,11 @@
         contentHtml = `<div>${displayText}</div>`;
       }
 
+      const bubbleClass = isOfflinePending ? 'chat-bubble-me-pending' : (isMe ? 'chat-bubble-me' : 'chat-bubble-them');
+
       wrapper.innerHTML = `
-        <span class="text-slate-400 mb-0.5 px-1" style="font-size: 0.75em;">${isMe ? 'You' : msg.sender_name} • ${timeTag} <span class="text-amber-600 font-medium countdown-tag" data-expires="${msg.expires_at || ''}">${countdownStr}</span></span>
-        <div class="max-w-[80%] px-3.5 py-2.5 rounded-2xl shadow-sm relative ${isMe ? 'chat-bubble-me' : 'chat-bubble-them'}">
+        <span class="text-slate-400 mb-0.5 px-1" style="font-size: 0.75em;">${isMe ? 'You' : msg.sender_name} • ${timeTag}${statusSuffix} <span class="text-amber-600 font-medium countdown-tag" data-expires="${msg.expires_at || ''}">${countdownStr}</span></span>
+        <div class="max-w-[80%] px-3.5 py-2.5 rounded-2xl shadow-sm relative ${bubbleClass}">
           ${contentHtml}
           <button onclick="toggleDeleteMenu(event, '${msg.id}')" class="absolute ${isMe ? '-left-6' : '-right-6'} top-2 opacity-0 group-hover:opacity-100 transition text-slate-400 hover:text-slate-700 px-1">
             <i class="fas fa-ellipsis-v"></i>
@@ -618,7 +622,7 @@
       localStorage.setItem('safetalk_deleted_local', JSON.stringify(deletedMessageIds));
       filterAndRenderMessages();
 
-      if (scope === 'everyone' && navigator.onLine) {
+      if (scope === 'everyone' && navigator.onLine && !msgId.toString().startsWith('offline_')) {
         await supabaseClient.from('messages').delete().eq('id', msgId);
       }
     }
@@ -676,20 +680,20 @@
 
           if (navigator.onLine) {
             const { data, error } = await supabaseClient.from('messages').insert([newMessage]).select();
-            if (error) {
-              alert("Sync Error: " + error.message);
-            } else if (data && data[0]) {
+            if (!error && data && data[0]) {
               allLoadedMessages.push(data[0]);
               saveGlobalCache();
               filterAndRenderMessages();
+              return;
             }
-          } else {
-            newMessage.id = 'offline_' + Date.now();
-            allLoadedMessages.push(newMessage);
-            saveGlobalCache();
-            filterAndRenderMessages();
-            queueOfflineMessage(newMessage);
           }
+          
+          // Offline fallback
+          newMessage.id = 'offline_' + Date.now();
+          allLoadedMessages.push(newMessage);
+          saveGlobalCache();
+          filterAndRenderMessages();
+          queueOfflineMessage(newMessage);
         };
       };
     }
@@ -717,20 +721,20 @@
 
       if (navigator.onLine) {
         const { data, error } = await supabaseClient.from('messages').insert([newMessage]).select();
-        if (error) {
-          alert("Database Error: " + error.message);
-        } else if (data && data[0]) {
+        if (!error && data && data[0]) {
           allLoadedMessages.push(data[0]);
           saveGlobalCache();
           filterAndRenderMessages();
+          return;
         }
-      } else {
-        newMessage.id = 'offline_' + Date.now();
-        allLoadedMessages.push(newMessage);
-        saveGlobalCache();
-        filterAndRenderMessages();
-        queueOfflineMessage(newMessage);
       }
+
+      // If offline or network fails, save locally as pending (faded style with ⏳)
+      newMessage.id = 'offline_' + Date.now();
+      allLoadedMessages.push(newMessage);
+      saveGlobalCache();
+      filterAndRenderMessages();
+      queueOfflineMessage(newMessage);
     }
 
     function queueOfflineMessage(msg) {
@@ -746,8 +750,9 @@
       if (queue.length === 0) { updateSyncStatus(true); return; }
 
       for (let msg of queue) {
-        delete msg.id;
-        await supabaseClient.from('messages').insert([msg]);
+        const cleanMsg = { ...msg };
+        delete cleanMsg.id;
+        await supabaseClient.from('messages').insert([cleanMsg]);
       }
       localStorage.removeItem('safetalk_offline_queue');
       updateSyncStatus(true);
@@ -829,7 +834,7 @@
     }
 
     function toggleEmojiPicker() {
-      document.getElementById('emojiPicker').classList.add('hidden');
+      document.getElementById('emojiPicker').classList.toggle('hidden');
     }
 
     function insertEmoji(emoji) {
