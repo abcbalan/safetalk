@@ -1,5 +1,6 @@
-<!-- 20261106 v11 Edit works -->
-<!-- but delete for everyone not works -->
+<!-- 20261106 v12 Edit works -->
+<!-- but delete for everyone not immediately -->
+<!-- Try to fix Realtime Delete Sync so messages vanish instantly across open screens -->
 
 <!DOCTYPE html>
 <html lang="en">
@@ -330,6 +331,7 @@
 
       setupUserInterface();
       renderConversationsList();
+      startRealtimeSubscription();
       startPollingEngine();
       setupNetworkListener();
       processOfflineQueue();
@@ -432,7 +434,7 @@
     }
 
     function getGlobalCacheKey() {
-      return `safetalk_global_messages_v15`;
+      return `safetalk_global_messages_v18`;
     }
 
     function saveGlobalCache() {
@@ -469,6 +471,41 @@
       }
     }
 
+    function startRealtimeSubscription() {
+      supabaseClient
+        .channel('public:messages')
+        .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'messages' }, payload => {
+          const deletedId = payload.old.id;
+          if (!deletedMessageIds.includes(deletedId)) {
+            deletedMessageIds.push(deletedId);
+            localStorage.setItem('safetalk_deleted_local', JSON.stringify(deletedMessageIds));
+          }
+          allLoadedMessages = allLoadedMessages.filter(m => m.id !== deletedId);
+          saveGlobalCache();
+          filterAndRenderMessages(false);
+        })
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, payload => {
+          const newMsg = payload.new;
+          if (!allLoadedMessages.some(m => m.id === newMsg.id)) {
+            allLoadedMessages.push(newMsg);
+            saveGlobalCache();
+            filterAndRenderMessages(false);
+          }
+        })
+        .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'messages' }, payload => {
+          const updatedMsg = payload.new;
+          const index = allLoadedMessages.findIndex(m => m.id === updatedMsg.id);
+          if (index !== -1) {
+            allLoadedMessages[index] = updatedMsg;
+          } else {
+            allLoadedMessages.push(updatedMsg);
+          }
+          saveGlobalCache();
+          filterAndRenderMessages(false);
+        })
+        .subscribe();
+    }
+
     function startPollingEngine() {
       if (pollInterval) clearInterval(pollInterval);
       pollInterval = setInterval(async () => {
@@ -489,7 +526,7 @@
             filterAndRenderMessages(false);
           }
         }
-      }, 2000);
+      }, 3000);
     }
 
     function filterAndRenderMessages(forceScroll = false) {
@@ -742,10 +779,8 @@
       const msgId = activeSelectedMsgId;
       closeActionMenu();
 
-      // Immediately remove from local list & cache so it vanishes instantly
       deletedMessageIds.push(msgId);
       localStorage.setItem('safetalk_deleted_local', JSON.stringify(deletedMessageIds));
-      // Checking
       allLoadedMessages = allLoadedMessages.filter(m => m.id !== msgId);
       saveGlobalCache();
       filterAndRenderMessages(false);
@@ -1092,3 +1127,4 @@
   </script>
 </body>
 </html>
+
