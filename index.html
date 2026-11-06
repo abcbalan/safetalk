@@ -384,40 +384,49 @@
       renderConversationsList();
     }
 
-    function getCacheKey() {
-      return `safetalk_msgs_${currentChatType}_${currentGroupId || currentRecipientEmail}`;
+    function getGlobalCacheKey() {
+      return `safetalk_global_messages_v2`;
+    }
+
+    function saveGlobalCache() {
+      try {
+        localStorage.setItem(getGlobalCacheKey(), JSON.stringify(allLoadedMessages));
+      } catch(e) {}
     }
 
     async function loadMessages() {
       const chatContainer = document.getElementById('chatMessages');
       
-      const cached = JSON.parse(localStorage.getItem(getCacheKey()) || '[]');
-      if (cached.length > 0) {
-        allLoadedMessages = cached;
-        filterAndRenderMessages();
-      } else {
+      // Load from global local cache immediately so restart never shows blank screen
+      const globalCached = JSON.parse(localStorage.getItem(getGlobalCacheKey()) || '[]');
+      allLoadedMessages = globalCached;
+      filterAndRenderMessages();
+
+      if (globalCached.length === 0) {
         chatContainer.innerHTML = '<div class="text-center text-slate-400 py-4"><i class="fas fa-spinner fa-spin mr-1"></i> Loading messages...</div>';
       }
 
       if (!navigator.onLine) return;
 
+      // Fix: Improved robust query for direct messages between users
       let query = supabaseClient.from('messages').select('*');
       if (currentChatType === 'group') {
         query = query.eq('group_id', currentGroupId);
       } else {
-        query = query.eq('channel_type', 'direct')
-          .or(`and(sender_email.eq.${currentUser.email},recipient_email.eq.${currentRecipientEmail}),and(sender_email.eq.${currentRecipientEmail},recipient_email.eq.${currentUser.email})`);
+        query = query.or(`and(sender_email.eq.${currentUser.email},recipient_email.eq.${currentRecipientEmail}),and(sender_email.eq.${currentRecipientEmail},recipient_email.eq.${currentUser.email})`);
       }
 
       const { data, error } = await query.order('created_at', { ascending: true });
-      if (error) { console.error("Error loading messages:", error); return; }
+      if (error) { 
+        console.error("Error loading messages from Supabase:", error); 
+        return; 
+      }
 
       if (data) {
-        // Fix: Safely merge server data with local cache instead of replacing it entirely
         const existingMap = new Map(allLoadedMessages.map(m => [m.id, m]));
         data.forEach(m => existingMap.set(m.id, m));
         allLoadedMessages = Array.from(existingMap.values());
-        localStorage.setItem(getCacheKey(), JSON.stringify(allLoadedMessages));
+        saveGlobalCache();
         filterAndRenderMessages();
       }
     }
@@ -426,6 +435,17 @@
       const nowMs = Date.now();
       const validMsgs = allLoadedMessages.filter(msg => {
         if (deletedMessageIds.includes(msg.id)) return false;
+        
+        // Strict chat filtering: Ensure message belongs to currently open room
+        if (currentChatType === 'group') {
+          if (msg.group_id !== currentGroupId) return false;
+        } else {
+          const isRelevantDirect = 
+            (msg.sender_email === currentUser.email && msg.recipient_email === currentRecipientEmail) ||
+            (msg.sender_email === currentRecipientEmail && msg.recipient_email === currentUser.email);
+          if (!isRelevantDirect) return false;
+        }
+
         if (msg.expires_at) {
           const expiryMs = new Date(msg.expires_at).getTime();
           if (!isNaN(expiryMs) && expiryMs <= nowMs) return false;
@@ -440,6 +460,14 @@
       const nowMs = Date.now();
       const validMsgs = allLoadedMessages.filter(msg => {
         if (deletedMessageIds.includes(msg.id)) return false;
+        if (currentChatType === 'group') {
+          if (msg.group_id !== currentGroupId) return false;
+        } else {
+          const isRelevantDirect = 
+            (msg.sender_email === currentUser.email && msg.recipient_email === currentRecipientEmail) ||
+            (msg.sender_email === currentRecipientEmail && msg.recipient_email === currentUser.email);
+          if (!isRelevantDirect) return false;
+        }
         if (msg.expires_at) {
           const expiryMs = new Date(msg.expires_at).getTime();
           if (!isNaN(expiryMs) && expiryMs <= nowMs) return false;
@@ -633,7 +661,7 @@
           };
 
           allLoadedMessages.push(newMessage);
-          localStorage.setItem(getCacheKey(), JSON.stringify(allLoadedMessages));
+          saveGlobalCache();
           filterAndRenderMessages();
 
           if (navigator.onLine) {
@@ -668,11 +696,12 @@
       };
 
       allLoadedMessages.push(newMessage);
-      localStorage.setItem(getCacheKey(), JSON.stringify(allLoadedMessages));
+      saveGlobalCache();
       filterAndRenderMessages();
 
       if (navigator.onLine) {
-        await supabaseClient.from('messages').insert([newMessage]);
+        const { error } = await supabaseClient.from('messages').insert([newMessage]);
+        if (error) console.error("Error sending message to Supabase:", error);
       } else {
         queueOfflineMessage(newMessage);
       }
@@ -791,11 +820,15 @@
         .channel('public:messages')
         .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, payload => {
           const msg = payload.new;
+          const isRelevant = 
+            (msg.channel_type === 'direct' && ((msg.sender_email === currentUser.email && msg.recipient_email === currentRecipientEmail) || (msg.sender_email === currentRecipientEmail && msg.recipient_email === currentUser.email))) ||
+            (msg.channel_type === 'group' && msg.group_id === currentGroupId);
+
           if (msg.sender_email !== currentUser.email) {
             const key = msg.channel_type === 'group' ? msg.group_id : msg.sender_email;
-            if (currentChatType === msg.channel_type && (currentRecipientEmail === msg.sender_email || currentGroupId === msg.group_id)) {
+            if (isRelevant) {
               allLoadedMessages.push(msg);
-              localStorage.setItem(getCacheKey(), JSON.stringify(allLoadedMessages));
+              saveGlobalCache();
               filterAndRenderMessages();
             } else {
               unreadCounts[key] = (unreadCounts[key] || 0) + 1;
@@ -848,7 +881,7 @@
       };
 
       allLoadedMessages.push(newMessage);
-      localStorage.setItem(getCacheKey(), JSON.stringify(allLoadedMessages));
+      saveGlobalCache();
       filterAndRenderMessages();
 
       if (navigator.onLine) {
