@@ -8,7 +8,6 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
-    /* Prevent mobile viewport bounce scrolling */
     html, body {
       position: fixed;
       width: 100%;
@@ -19,6 +18,7 @@
 
     .chat-bubble-me { background: #15803d; color: white; border-bottom-right-radius: 4px; }
     .chat-bubble-them { background: #ffffff; color: #0f172a; border-bottom-left-radius: 4px; border: 1px solid #e2e8f0; }
+    
     .text-sm-custom { font-size: 0.875rem; }
     .text-lg-custom { font-size: 1.05rem; }
     .text-xl-custom { font-size: 1.25rem; }
@@ -72,8 +72,6 @@
 
     <!-- SIGNAL CHATS LIST SCREEN -->
     <div id="chatsListScreen" class="w-full md:w-80 bg-white border-r border-slate-200 flex flex-col shrink-0 h-full absolute md:relative z-20 inset-0 transition-all">
-      
-      <!-- Search & Create Group Header -->
       <div class="p-3 bg-slate-50 border-b border-slate-100 flex flex-col gap-2">
         <div class="relative">
           <input type="text" id="chatSearchInput" oninput="filterChatList(this.value)" placeholder="Search conversations..." class="w-full bg-white text-xs px-3 py-2 pl-8 rounded-xl border border-slate-300 focus:outline-none focus:ring-1 focus:ring-emerald-600">
@@ -85,7 +83,6 @@
         </button>
       </div>
 
-      <!-- Conversations List -->
       <div class="p-2 pb-1 text-[10px] font-bold uppercase tracking-wider text-slate-400 px-3">Conversations</div>
       <div id="conversationsContainer" class="flex-1 overflow-y-auto divide-y divide-slate-100"></div>
     </div>
@@ -93,7 +90,7 @@
     <!-- CHAT CONVERSATION SCREEN -->
     <main id="chatRoomScreen" class="flex-1 flex flex-col bg-slate-100 absolute md:relative inset-0 z-10 md:z-auto hidden">
       
-      <!-- Header Controls: History Search & Auto Delete -->
+      <!-- Header Controls: History Search, Auto Delete, Font Size -->
       <div class="p-2 bg-white border-b border-slate-200 flex items-center justify-between px-4 shrink-0">
         <div class="relative flex-1 max-w-xs">
           <input type="text" id="historySearchInput" oninput="filterMessageHistory()" placeholder="Search messages..." class="w-full bg-slate-100 text-xs px-3 py-1.5 pl-8 rounded-lg border border-slate-300 focus:outline-none">
@@ -101,11 +98,12 @@
         </div>
 
         <div class="flex items-center space-x-2 ml-2">
-          <!-- Retention Dropdown (Auto Delete) -->
+          <!-- Retention Dropdown with 1-minute test option -->
           <select id="retentionSelect" class="text-xs bg-slate-100 border border-slate-300 rounded-lg px-2 py-1.5 text-slate-700 focus:outline-none font-medium">
             <option value="forever">⏳ Keep Forever</option>
-            <option value="8h">Auto Delete (8 Hours)</option>
-            <option value="7d">Auto Delete (1 Week)</option>
+            <option value="1m">⏱️ Delete (1 Min Test)</option>
+            <option value="8h">⏳ Delete (8 Hours)</option>
+            <option value="7d">⏳ Delete (1 Week)</option>
           </select>
 
           <select id="fontSizeSelect" onchange="changeFontSize(this.value)" class="text-xs bg-slate-100 border border-slate-300 rounded-lg px-2 py-1.5 focus:outline-none">
@@ -130,16 +128,18 @@
         </button>
       </div>
 
-      <!-- EXTENDED CATEGORIZED EMOJI PICKER -->
-      <div id="emojiPicker" class="hidden bg-white border-t border-slate-200 flex flex-col max-h-48 overflow-y-auto p-2 shadow-inner shrink-0">
-        <div class="flex gap-2 border-b border-slate-200 pb-1 mb-2 text-xs text-slate-500 overflow-x-auto">
-          <button type="button" onclick="switchEmojiTab('smileys')" class="font-bold text-emerald-700">Smileys</button>
-          <button type="button" onclick="switchEmojiTab('gestures')">Gestures</button>
-          <button type="button" onclick="switchEmojiTab('hearts')">Hearts</button>
-          <button type="button" onclick="switchEmojiTab('animals')">Animals</button>
-          <button type="button" onclick="switchEmojiTab('food')">Food</button>
+      <!-- EXPANDED CATEGORIZED EMOJI PICKER WITH FIXED TABS -->
+      <div id="emojiPicker" class="hidden bg-white border-t border-slate-200 flex flex-col max-h-52 overflow-y-auto p-2 shadow-inner shrink-0">
+        <div id="emojiTabNav" class="flex gap-3 border-b border-slate-200 pb-1.5 mb-2 text-xs text-slate-500 overflow-x-auto shrink-0">
+          <button type="button" onclick="switchEmojiTab('smileys')" id="tab_smileys" class="font-bold text-emerald-700 pb-0.5 border-b-2 border-emerald-600">Smileys</button>
+          <button type="button" onclick="switchEmojiTab('gestures')" id="tab_gestures" class="hover:text-slate-800">Gestures</button>
+          <button type="button" onclick="switchEmojiTab('hearts')" id="tab_hearts" class="hover:text-slate-800">Hearts</button>
+          <button type="button" onclick="switchEmojiTab('animals')" id="tab_animals" class="hover:text-slate-800">Animals</button>
+          <button type="button" onclick="switchEmojiTab('food')" id="tab_food" class="hover:text-slate-800">Food</button>
+          <button type="button" onclick="switchEmojiTab('activities')" id="tab_activities" class="hover:text-slate-800">Activities</button>
+          <button type="button" onclick="switchEmojiTab('travel')" id="tab_travel" class="hover:text-slate-800">Travel</button>
         </div>
-        <div id="emojiGrid" class="flex gap-2 flex-wrap text-xl"></div>
+        <div id="emojiGrid" class="flex gap-2.5 flex-wrap text-xl p-1"></div>
       </div>
 
       <!-- INPUT BAR -->
@@ -217,11 +217,13 @@
     ];
 
     const emojiCategories = {
-      smileys: ['😊', '😂', '🥰', '😍', '😎', '😇', '🤔', '😅', '😜', '🥳', '😭', '🤯', '😬', '😴'],
-      gestures: ['👍', '👋', '🙏', '👏', '🤝', '✌️', '💪', '👊', '🙌', '🔥', '✨', '🎉'],
-      hearts: ['❤️', '💖', '💙', '💚', '💛', '💜', '🖤', '💔', '💕', '💘'],
-      animals: ['🐶', '🐱', '🦁', '🐼', '🐨', '🦊', '🐯', '🦄', '🐝', '🦉'],
-      food: ['🍎', '🍕', '🍔', '🍟', '🍦', '🍩', '☕', '🥤', '🍿', '🍣']
+      smileys: ['😊', '😂', '🥰', '😍', '😎', '😇', '🤔', '😅', '😜', '🥳', '😭', '🤯', '😬', '😴', '🤠', '🤩', '🤑', '🤫', '🤭', '🥱', '🤓', '👻', '💩', '🤖'],
+      gestures: ['👍', '👎', '👋', '🙏', '👏', '🤝', '✌️', '💪', '👊', '🙌', '🔥', '✨', '🎉', '💪', '👈', '👉', '👆', '👇', '🤞', '🖖', '🤘', '🤙'],
+      hearts: ['❤️', '💖', '💙', '💚', '💛', '💜', '🖤', '💔', '💕', '💘', '💗', '💓', '💞', '💌', '💟', '❣️'],
+      animals: ['🐶', '🐱', '🦁', '🐼', '🐨', '🦊', '🐯', '🦄', '🐝', '🦉', '🦋', '🐢', '🐍', '🐳', '🐬', '🐙', '🦖', '🦕', '🐇', '🦥'],
+      food: ['🍎', '🍕', '🍔', '🍟', '🍦', '🍩', '☕', '🥤', '🍿', '🍣', '🎂', '🍪', '🍫', '🍺', '🍷', '🍉', '🍓', '🥑', '🌮', '🍜'],
+      activities: ['⚽', '🏀', '🏈', '⚾', '🎾', '🏐', '🏉', '🎱', '🏓', '🏸', '🏒', '🥊', '🥋', '🛹', '⛳', '⛸️', '🎣', '🎽', '🎿', '🎳'],
+      travel: ['🚗', '🚕', '🚙', '🚌', '🚎', '🏎️', '🚓', '🚑', '🚒', '🚐', '🚚', '🚛', '🚜', '🛵', '🏍️', '🚲', '🛴', '✈️', '🚀', '🛸']
     };
 
     let currentUser = null;
@@ -298,7 +300,6 @@
       const container = document.getElementById('conversationsContainer');
       container.innerHTML = '';
 
-      // 1. Custom User-Created Groups
       customGroups.forEach(grp => {
         if (!filter || grp.name.toLowerCase().includes(filter.toLowerCase())) {
           const div = document.createElement('div');
@@ -319,7 +320,6 @@
         }
       });
 
-      // 2. Direct 1-to-1 Contacts
       familyMembers.forEach(member => {
         if (member.email !== currentUser.email && (!filter || member.name.toLowerCase().includes(filter.toLowerCase()))) {
           const div = document.createElement('div');
@@ -382,7 +382,6 @@
       renderConversationsList();
     }
 
-    // --- LOCAL STORAGE & OFFLINE ENGINE ---
     function getCacheKey() {
       return `safetalk_msgs_${currentChatType}_${currentGroupId || currentRecipientEmail}`;
     }
@@ -444,7 +443,8 @@
       const retentionVal = document.getElementById('retentionSelect').value;
       if (retentionVal === 'forever') return null;
       const now = new Date();
-      if (retentionVal === '8h') now.setHours(now.getHours() + 8);
+      if (retentionVal === '1m') now.setMinutes(now.getMinutes() + 1);
+      else if (retentionVal === '8h') now.setHours(now.getHours() + 8);
       else if (retentionVal === '7d') now.setDate(now.getDate() + 7);
       return now.toISOString();
     }
@@ -456,8 +456,6 @@
       const isVoice = msg.message_text.startsWith('data:audio') || msg.message_text.includes('.webm') || msg.message_text.includes('.mp3');
       
       let displayText = (isImage || isVoice) ? msg.message_text : decryptText(msg.message_text);
-
-      // Add floating animation class to emojis
       displayText = displayText.replace(/([\u{1F300}-\u{1F9FF}]|[\u{2600}-\u{26FF}])/gu, '<span class="animated-emoji">$1</span>');
 
       const timeTag = new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -483,13 +481,13 @@
         <span class="text-[10px] text-slate-400 mb-0.5 px-1">${isMe ? 'You' : msg.sender_name} • ${timeTag}</span>
         <div class="max-w-[80%] px-3.5 py-2.5 rounded-2xl shadow-sm relative ${isMe ? 'chat-bubble-me' : 'chat-bubble-them'}">
           ${contentHtml}
-          <!-- Delete Dropdown Action -->
-          <button onclick="toggleDeleteMenu(event, '${msg.id}')" class="text-xs opacity-0 group-hover:opacity-100 transition ml-2 text-slate-300 hover:text-white">
+          <!-- Delete Dropdown Action Button inside bubble bounds -->
+          <button onclick="toggleDeleteMenu(event, '${msg.id}')" class="absolute ${isMe ? '-left-6' : '-right-6'} top-2 text-xs opacity-0 group-hover:opacity-100 transition text-slate-400 hover:text-slate-700 px-1">
             <i class="fas fa-ellipsis-v"></i>
           </button>
-          <div id="deleteMenu_${msg.id}" class="hidden absolute right-0 top-8 bg-white text-slate-800 text-xs rounded-xl shadow-xl border border-slate-200 py-1 z-30 w-36">
-            <button onclick="deleteMessage('${msg.id}', 'me')" class="w-full text-left px-3 py-1.5 hover:bg-slate-100 text-slate-700">Delete for Me</button>
-            ${isMe ? `<button onclick="deleteMessage('${msg.id}', 'everyone')" class="w-full text-left px-3 py-1.5 hover:bg-slate-100 text-red-600 font-semibold">Delete for Everyone</button>` : ''}
+          <div id="deleteMenu_${msg.id}" class="hidden absolute ${isMe ? 'right-0' : 'left-0'} top-8 bg-white text-slate-800 rounded-xl shadow-xl border border-slate-200 py-1 z-30 w-40">
+            <button onclick="deleteMessage('${msg.id}', 'me')" class="w-full text-left px-3 py-2 hover:bg-slate-100 text-slate-700">Delete for Me</button>
+            ${isMe ? `<button onclick="deleteMessage('${msg.id}', 'everyone')" class="w-full text-left px-3 py-2 hover:bg-slate-100 text-red-600 font-semibold">Delete for Everyone</button>` : ''}
           </div>
         </div>
       `;
@@ -500,6 +498,10 @@
 
     function toggleDeleteMenu(e, msgId) {
       e.stopPropagation();
+      // Close any other open menus first
+      document.querySelectorAll('[id^="deleteMenu_"]').forEach(m => {
+        if (m.id !== `deleteMenu_${msgId}`) m.classList.add('hidden');
+      });
       const menu = document.getElementById(`deleteMenu_${msgId}`);
       menu.classList.toggle('hidden');
     }
@@ -514,7 +516,6 @@
       }
     }
 
-    // --- VOICE RECORDING FIX ---
     async function toggleVoiceRecording() {
       const bar = document.getElementById('voiceRecordingBar');
       if (mediaRecorder && mediaRecorder.state === 'recording') {
@@ -613,7 +614,6 @@
       }
     }
 
-    // --- OFFLINE SYNC ENGINE ---
     function queueOfflineMessage(msg) {
       let queue = JSON.parse(localStorage.getItem('safetalk_offline_queue') || '[]');
       queue.push(msg);
@@ -643,7 +643,6 @@
       ind.className = `w-2.5 h-2.5 rounded-full ${isOnline ? 'bg-emerald-400' : 'bg-amber-400 animate-pulse'}`;
     }
 
-    // --- DYNAMIC GROUP CREATION ---
     function openGroupCreateModal() {
       const container = document.getElementById('groupMembersSelector');
       container.innerHTML = '';
@@ -684,14 +683,26 @@
       renderConversationsList();
     }
 
-    // --- EMOJI PICKER & BADGES ---
+    // --- EMOJI CATEGORY TABS FIX ---
     function switchEmojiTab(tabKey) {
+      // Update active tab styles
+      ['smileys', 'gestures', 'hearts', 'animals', 'food', 'activities', 'travel'].forEach(k => {
+        const btn = document.getElementById(`tab_${k}`);
+        if (btn) {
+          if (k === tabKey) {
+            btn.className = "font-bold text-emerald-700 pb-0.5 border-b-2 border-emerald-600 shrink-0";
+          } else {
+            btn.className = "text-slate-500 hover:text-slate-800 pb-0.5 shrink-0";
+          }
+        }
+      });
+
       const grid = document.getElementById('emojiGrid');
       grid.innerHTML = '';
-      emojiCategories[tabKey].forEach(emoji => {
+      (emojiCategories[tabKey] || []).forEach(emoji => {
         const btn = document.createElement('button');
         btn.type = 'button';
-        btn.className = 'hover:scale-125 transition transform';
+        btn.className = 'hover:scale-125 transition transform p-1';
         btn.innerText = emoji;
         btn.onclick = () => insertEmoji(emoji);
         grid.appendChild(btn);
@@ -783,6 +794,7 @@
       sendBtn.disabled = false; sendBtn.innerText = "Send Photo";
     }
 
+    // --- MATCH FONT SIZE FOR DELETE MENU ---
     function changeFontSize(size) {
       document.getElementById('appBody').className = `bg-slate-100 font-sans h-full flex flex-col antialiased text-${size}-custom select-none`;
     }
