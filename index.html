@@ -1,4 +1,5 @@
-<!-- 20261106 Long-Press Context Menu for Messages (Delete, Copy, Reactions) -->
+<!-- 20261106 v3 Fixed iPhone Long-Press, Added Edit, Permanent Reactions -->
+<!-- Try to fix click hold in iphone issue -->
 
 <!DOCTYPE html>
 <html lang="en">
@@ -16,6 +17,7 @@
       margin: 0;
       padding: 0;
       overflow: hidden;
+      -webkit-touch-callout: none;
     }
 
     .chat-bubble-me { background: #15803d; color: white; border-bottom-right-radius: 4px; word-break: break-word; }
@@ -169,7 +171,7 @@
     </main>
   </div>
 
-  <!-- LONG-PRESS ACTION MODAL / SHEET -->
+  <!-- ACTION MENU MODAL / SHEET -->
   <div id="actionMenuModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden z-50 flex items-end md:items-center justify-center p-0 md:p-4" onclick="closeActionMenu()">
     <div class="bg-white w-full md:max-w-xs rounded-t-3xl md:rounded-2xl shadow-2xl p-5 flex flex-col gap-3 animate-slideUp" onclick="event.stopPropagation()">
       <div class="w-10 h-1 bg-slate-300 rounded-full mx-auto md:hidden"></div>
@@ -187,6 +189,11 @@
       <button onclick="copyActiveMessage()" class="w-full py-2.5 px-3 bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold rounded-xl text-xs flex items-center space-x-2.5 transition">
         <i class="fas fa-copy text-slate-500 w-4"></i>
         <span>Copy Text</span>
+      </button>
+
+      <button id="editMessageBtn" onclick="editActiveMessage()" class="w-full py-2.5 px-3 bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold rounded-xl text-xs flex items-center space-x-2.5 transition">
+        <i class="fas fa-pen text-slate-500 w-4"></i>
+        <span>Edit Message</span>
       </button>
 
       <button onclick="deleteActiveMessage('me')" class="w-full py-2.5 px-3 bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold rounded-xl text-xs flex items-center space-x-2.5 transition">
@@ -423,7 +430,7 @@
     }
 
     function getGlobalCacheKey() {
-      return `safetalk_global_messages_v10`;
+      return `safetalk_global_messages_v11`;
     }
 
     function saveGlobalCache() {
@@ -604,23 +611,41 @@
       bubbleEl.className = `max-w-[80%] px-3.5 py-2.5 rounded-2xl shadow-sm relative cursor-pointer ${bubbleClass}`;
       bubbleEl.innerHTML = contentHtml;
 
-      // Attach Click-and-Hold / Long-press & Right-Click handlers
+      // Reliable iPhone & PC Long Press / Right Click / Touch Hold Handlers
       let pressTimer = null;
-      
+      let startX = 0;
+      let startY = 0;
+
       const triggerActionMenu = (e) => {
         e.preventDefault();
         openActionMenu(msg.id, isMe);
       };
 
       bubbleEl.addEventListener('mousedown', (e) => {
-        if (e.button === 2) { triggerActionMenu(e); return; } // Right click
+        if (e.button === 2) { triggerActionMenu(e); return; }
         pressTimer = setTimeout(() => triggerActionMenu(e), 500);
       });
       bubbleEl.addEventListener('mouseup', () => clearTimeout(pressTimer));
-      bubbleEl.addEventListener('touchstart', () => {
-        pressTimer = setTimeout(() => triggerActionMenu(event), 600);
-      });
+      bubbleEl.addEventListener('mousemove', () => clearTimeout(pressTimer));
+
+      bubbleEl.addEventListener('touchstart', (e) => {
+        startX = e.touches[0].clientX;
+        startY = e.touches[0].clientY;
+        pressTimer = setTimeout(() => {
+          triggerActionMenu(e);
+        }, 500);
+      }, { passive: true });
+
+      bubbleEl.addEventListener('touchmove', (e) => {
+        const moveX = e.touches[0].clientX;
+        const moveY = e.touches[0].clientY;
+        if (Math.abs(moveX - startX) > 10 || Math.abs(moveY - startY) > 10) {
+          clearTimeout(pressTimer); // Cancel if user is scrolling conversation
+        }
+      }, { passive: true });
+
       bubbleEl.addEventListener('touchend', () => clearTimeout(pressTimer));
+      bubbleEl.addEventListener('contextmenu', (e) => e.preventDefault());
 
       wrapper.innerHTML = `
         <span class="text-slate-400 mb-0.5 px-1" style="font-size: 0.75em;">${isMe ? 'You' : msg.sender_name} • ${timeTag}${statusSuffix} <span class="text-amber-600 font-medium countdown-tag" data-expires="${msg.expires_at || ''}">${countdownStr}</span></span>
@@ -633,12 +658,18 @@
     function openActionMenu(msgId, isMe) {
       activeSelectedMsgId = msgId;
       const deleteEveryoneBtn = document.getElementById('deleteEveryoneBtn');
+      const editBtn = document.getElementById('editMessageBtn');
+
       if (isMe) {
         deleteEveryoneBtn.classList.remove('hidden');
         deleteEveryoneBtn.classList.add('flex');
+        editBtn.classList.remove('hidden');
+        editBtn.classList.add('flex');
       } else {
         deleteEveryoneBtn.classList.add('hidden');
         deleteEveryoneBtn.classList.remove('flex');
+        editBtn.classList.add('hidden');
+        editBtn.classList.remove('flex');
       }
       document.getElementById('actionMenuModal').classList.remove('hidden');
     }
@@ -659,14 +690,34 @@
       closeActionMenu();
     }
 
-    function addReaction(emoji) {
+    function editActiveMessage() {
+      const msg = allLoadedMessages.find(m => m.id === activeSelectedMsgId);
+      if (msg) {
+        const text = decryptText(msg.message_text);
+        document.getElementById('messageInput').value = text;
+        document.getElementById('messageInput').focus();
+        // Delete old version locally/remotely so user can submit updated version
+        deleteActiveMessage('everyone');
+      }
+      closeActionMenu();
+    }
+
+    async function addReaction(emoji) {
       if (!activeSelectedMsgId) return;
       const msg = allLoadedMessages.find(m => m.id === activeSelectedMsgId);
       if (msg) {
         const currentText = decryptText(msg.message_text);
-        msg.message_text = `${currentText} ${emoji}`;
-        saveGlobalCache();
-        filterAndRenderMessages();
+        // Avoid duplicate reaction spam
+        if (!currentText.includes(emoji)) {
+          const updatedText = `${currentText} ${emoji}`;
+          msg.message_text = encryptText(updatedText);
+          saveGlobalCache();
+          filterAndRenderMessages();
+
+          if (navigator.onLine && !msg.id.toString().startsWith('offline_')) {
+            await supabaseClient.from('messages').update({ message_text: msg.message_text }).eq('id', msg.id);
+          }
+        }
       }
       closeActionMenu();
     }
