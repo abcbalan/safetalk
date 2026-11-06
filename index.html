@@ -1,4 +1,4 @@
-<!-- 20261106 v6 Edit works -->
+<!-- 20261106 v7 Edit works -->
 <!-- Try to fix delete for everyone issue
 
 <!DOCTYPE html>
@@ -432,7 +432,7 @@
     }
 
     function getGlobalCacheKey() {
-      return `safetalk_global_messages_v15`;
+      return `safetalk_global_messages_v16`;
     }
 
     function saveGlobalCache() {
@@ -742,7 +742,7 @@
       const msgId = activeSelectedMsgId;
       closeActionMenu();
 
-      // Immediately remove from local list & cache so it vanishes instantly
+      // Immediately filter out locally
       deletedMessageIds.push(msgId);
       localStorage.setItem('safetalk_deleted_local', JSON.stringify(deletedMessageIds));
       allLoadedMessages = allLoadedMessages.filter(m => m.id !== msgId);
