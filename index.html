@@ -1,4 +1,4 @@
-<!-- 20261109 v23 -->
+<!-- 20261109 v24 -->
 <!-- try to add more function like PDF, URL and offline works, delete group -->
 <!-- try to Link Previews, Read Receipts, Online Presence, Attachment -->
 <!-- try to fix Timers, Action Menus, Emojis, Voice & Offline Sync) -->
@@ -642,23 +642,32 @@ function renderSingleMessage(msg) {
 
       const wrapper = document.createElement('div');
       wrapper.className = `flex flex-col ${isMe ? 'items-end' : 'items-start'} mb-2 group relative`;
+												  
 
       let contentHtml = '';
       if (isImage) {
         contentHtml = `<img src="${displayText}" onclick="openLightbox('${displayText}')" class="rounded-xl max-w-xs max-h-64 object-cover cursor-pointer hover:opacity-90 shadow">`;
       } else if (isVoice) {
+					   
+														
         contentHtml = `<div class="flex items-center space-x-2 py-1"><i class="fas fa-play text-emerald-600 cursor-pointer" onclick="this.nextElementSibling.play()"></i><audio controls src="${displayText}" class="h-8 max-w-[180px]"></audio></div>`;
+										  
+				
+		  
       } else {
         contentHtml = formatTextWithLinkPreviews(displayText);
       }
 
       const bubbleClass = isOfflinePending ? 'chat-bubble-me-pending' : (isMe ? 'chat-bubble-me' : 'chat-bubble-them');
+
       const bubbleEl = document.createElement('div');
       bubbleEl.className = `max-w-[80%] px-3.5 py-2.5 rounded-2xl shadow-sm relative cursor-pointer ${bubbleClass}`;
       bubbleEl.innerHTML = contentHtml;
 
 let pressTimer = null;
       let isSwiping = false;
+					 
+
       const triggerActionMenu = (e) => { 
         if (e && e.cancelable) e.preventDefault(); 
         openActionMenu(msg.id, isMe); 
@@ -673,6 +682,7 @@ let pressTimer = null;
 
       bubbleEl.addEventListener('touchstart', (e) => {
         isSwiping = false;
+									  
         pressTimer = setTimeout(() => {
           if (!isSwiping) triggerActionMenu(e);
         }, 500);
@@ -680,13 +690,18 @@ let pressTimer = null;
 
       bubbleEl.addEventListener('touchmove', () => {
         isSwiping = true;
+										   
+																			 
         clearTimeout(pressTimer);
+		 
       }, { passive: true });
 
       bubbleEl.addEventListener('touchend', () => clearTimeout(pressTimer));
       bubbleEl.addEventListener('contextmenu', (e) => e.preventDefault());
 
+						   
       wrapper.innerHTML = `<span class="text-slate-400 mb-0.5 px-1" style="font-size: 0.75em;">${isMe ? 'You' : msg.sender_name} • ${timeTag}${statusSuffix} <span class="text-amber-600 font-medium countdown-tag" data-expires="${msg.expires_at || ''}">${countdownStr}</span></span>`;
+		
       wrapper.appendChild(bubbleEl);
       chatContainer.appendChild(wrapper);
     }
