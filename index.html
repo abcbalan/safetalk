@@ -505,19 +505,22 @@
         .subscribe();
     }
 
-    function startPollingEngine() {
+function startPollingEngine() {
       if (pollInterval) clearInterval(pollInterval);
       pollInterval = setInterval(async () => {
         if (!navigator.onLine) return;
         const { data, error } = await supabaseClient.from('messages').select('*').order('created_at', { ascending: true });
         if (!error && data) {
-          allLoadedMessages = allLoadedMessages.filter(m => !m.id.toString().startsWith('offline_'));
-          const existingMap = new Map(allLoadedMessages.map(m => [m.id, m]));
-          data.forEach(m => existingMap.set(m.id, m));
-          allLoadedMessages = Array.from(existingMap.values());
-          saveGlobalCache();
-          if (!document.getElementById('chatRoomScreen').classList.contains('hidden')) {
-            filterAndRenderMessages(false);
+          const newCleanData = data.filter(m => !m.id.toString().startsWith('offline_'));
+          if (newCleanData.length !== allLoadedMessages.filter(m => !m.id.toString().startsWith('offline_')).length) {
+            allLoadedMessages = allLoadedMessages.filter(m => !m.id.toString().startsWith('offline_'));
+            const existingMap = new Map(allLoadedMessages.map(m => [m.id, m]));
+            newCleanData.forEach(m => existingMap.set(m.id, m));
+            allLoadedMessages = Array.from(existingMap.values());
+            saveGlobalCache();
+            if (!document.getElementById('chatRoomScreen').classList.contains('hidden')) {
+              filterAndRenderMessages(false);
+            }
           }
         }
       }, 3000);
