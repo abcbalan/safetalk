@@ -1,7 +1,5 @@
-<!-- 20261109 v15 -->
-<!-- try to add more function like PDF, URL and offline works -->
-<!-- SafeTalk Messenger - Release v15 -->
-<!-- Fixes: PWA Offline mode, Document/PDF attachments, Clickable Links/YouTube, Custom Modals (No domain alerts) -->
+<!-- 20261109 v16 -->
+<!-- try to add more function like PDF, URL and offline works, delete group -->
 
 <!DOCTYPE html>
 <html lang="en">
@@ -178,7 +176,7 @@
     </main>
   </div>
 
-  <!-- CUSTOM LOGIN MODAL (Replaces browser prompts) -->
+  <!-- CUSTOM LOGIN MODAL -->
   <div id="customLoginModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
     <div class="bg-white w-full max-w-sm rounded-2xl shadow-2xl p-5 flex flex-col gap-3">
       <h3 class="font-bold text-slate-900 text-sm flex items-center gap-2">
@@ -397,17 +395,22 @@
         if (!filter || grp.name.toLowerCase().includes(filter.toLowerCase())) {
           const div = document.createElement('div');
           const isUnread = (unreadCounts[grp.id] || 0) > 0;
-          div.className = `p-3.5 hover:bg-slate-50 cursor-pointer transition flex items-center space-x-3 ${isUnread ? 'bg-emerald-50/60 font-bold' : ''}`;
+          div.className = `p-3.5 hover:bg-slate-50 cursor-pointer transition flex items-center justify-between space-x-3 ${isUnread ? 'bg-emerald-50/60 font-bold' : ''}`;
           div.onclick = () => openChatRoom('group', grp.id, grp.name, 'bg-emerald-700', 'fa-users');
           div.innerHTML = `
-            <div class="w-11 h-11 rounded-full bg-emerald-700 flex items-center justify-center text-white font-bold shrink-0 shadow-sm relative">
-              <i class="fas fa-users"></i>
-              ${isUnread ? `<span class="absolute -top-1 -right-1 bg-red-500 text-white w-4 h-4 rounded-full flex items-center justify-center font-bold" style="font-size: 0.7em;">${unreadCounts[grp.id]}</span>` : ''}
+            <div class="flex items-center space-x-3 min-w-0">
+              <div class="w-11 h-11 rounded-full bg-emerald-700 flex items-center justify-center text-white font-bold shrink-0 shadow-sm relative">
+                <i class="fas fa-users"></i>
+                ${isUnread ? `<span class="absolute -top-1 -right-1 bg-red-500 text-white w-4 h-4 rounded-full flex items-center justify-center font-bold" style="font-size: 0.7em;">${unreadCounts[grp.id]}</span>` : ''}
+              </div>
+              <div class="flex-1 min-w-0">
+                <div class="text-slate-800 truncate ${isUnread ? 'font-bold' : 'font-semibold'}">${grp.name}</div>
+                <div class="text-slate-500 truncate" style="font-size: 0.8em;">Admin: ${grp.admin}</div>
+              </div>
             </div>
-            <div class="flex-1 min-w-0">
-              <div class="text-slate-800 truncate ${isUnread ? 'font-bold' : 'font-semibold'}">${grp.name}</div>
-              <div class="text-slate-500 truncate" style="font-size: 0.8em;">Admin: ${grp.admin}</div>
-            </div>
+            <button onclick="deleteCustomGroup(event, '${grp.id}')" class="text-slate-400 hover:text-red-500 p-2 transition shrink-0" title="Delete Group">
+              <i class="fas fa-trash text-xs"></i>
+            </button>
           `;
           container.appendChild(div);
         }
@@ -432,6 +435,17 @@
           container.appendChild(div);
         }
       });
+    }
+
+    function deleteCustomGroup(e, grpId) {
+      e.stopPropagation();
+      customGroups = customGroups.filter(g => g.id !== grpId);
+      localStorage.setItem('safetalk_custom_groups', JSON.stringify(customGroups));
+      if (currentGroupId === grpId) {
+        returnToChatList();
+      } else {
+        renderConversationsList();
+      }
     }
 
     function filterChatList(query) {
@@ -477,7 +491,7 @@
     }
 
     function getGlobalCacheKey() {
-      return `safetalk_global_messages_v20`;
+      return `safetalk_global_messages_v21`;
     }
 
     function saveGlobalCache() {
@@ -669,20 +683,41 @@
       return `${hrs}h left`;
     }
 
-    function formatTextWithLinks(text) {
+    function formatTextWithLinkPreviews(text) {
       const youtubeMatch = text.match(/(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
       if (youtubeMatch && youtubeMatch[1]) {
         const embedUrl = `https://www.youtube.com/embed/${youtubeMatch[1]}`;
+        const cleanText = text.replace(youtubeMatch[0], `<a href="${youtubeMatch[0]}" target="_blank" class="underline text-emerald-200 font-semibold">${youtubeMatch[0]}</a>`);
         return `
-          <div>${text.replace(youtubeMatch[0], `<a href="${youtubeMatch[0]}" target="_blank" class="underline text-blue-200">${youtubeMatch[0]}</a>`)}</div>
-          <div class="mt-2 rounded-xl overflow-hidden border border-slate-300">
-            <iframe class="w-full h-40" src="${embedUrl}" frameborder="0" allowfullscreen></iframe>
+          <div>${cleanText}</div>
+          <div class="mt-2 rounded-xl overflow-hidden border border-slate-300 shadow-sm bg-black">
+            <iframe class="w-full h-44" src="${embedUrl}" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" allowfullscreen></iframe>
           </div>
         `;
       }
       
       const urlRegex = /(https?:\/\/[^\s]+)/g;
-      return text.replace(urlRegex, (url) => `<a href="${url}" target="_blank" rel="noopener noreferrer" class="underline text-blue-200 font-medium">${url}</a>`);
+      const matches = text.match(urlRegex);
+      if (matches && matches[0]) {
+        const targetUrl = matches[0];
+        let domain = '';
+        try { domain = new URL(targetUrl).hostname; } catch(e) { domain = targetUrl; }
+
+        const linkedText = text.replace(urlRegex, (url) => `<a href="${url}" target="_blank" rel="noopener noreferrer" class="underline text-emerald-200 font-semibold break-all">${url}</a>`);
+        return `
+          <div>${linkedText}</div>
+          <a href="${targetUrl}" target="_blank" rel="noopener noreferrer" class="mt-2.5 block bg-slate-800/40 border border-slate-600/50 rounded-xl p-2.5 hover:bg-slate-800/60 transition">
+            <div class="flex items-center space-x-2 text-xs font-bold text-emerald-300">
+              <i class="fas fa-globe text-xs"></i>
+              <span>${domain}</span>
+            </div>
+            <div class="text-[11px] text-slate-200 mt-1 line-clamp-2">Shared Web Page Preview</div>
+            <div class="text-[9px] text-slate-400 mt-0.5 truncate">${targetUrl}</div>
+          </a>
+        `;
+      }
+
+      return text;
     }
 
     function renderSingleMessage(msg) {
@@ -691,8 +726,8 @@
       const isOfflinePending = msg.id && msg.id.toString().startsWith('offline_');
       
       const isDoc = msg.message_text.startsWith('DOC:');
-      const isImage = !isDoc && msg.message_text.startsWith('http') && !msg.message_text.includes('.webm') && !msg.message_text.includes('.mp3');
-      const isVoice = !isDoc && (msg.message_text.startsWith('data:audio') || msg.message_text.includes('.webm') || msg.message_text.includes('.mp3'));
+      const isImage = !isDoc && msg.message_text.startsWith('http') && !msg.message_text.includes('.webm') && !msg.message_text.includes('.mp3') && !msg.message_text.includes('.m4a');
+      const isVoice = !isDoc && (msg.message_text.startsWith('data:audio') || msg.message_text.includes('.webm') || msg.message_text.includes('.mp3') || msg.message_text.includes('.m4a'));
       
       let displayText = (isImage || isVoice || isDoc) ? msg.message_text : decryptText(msg.message_text);
 
@@ -729,7 +764,7 @@
         `;
       } else {
         displayText = displayText.replace(/([\u{1F300}-\u{1F9FF}]|[\u{2600}-\u{26FF}])/gu, '<span class="animated-emoji">$1</span>');
-        contentHtml = `<div>${formatTextWithLinks(displayText)}</div>`;
+        contentHtml = `<div>${formatTextWithLinkPreviews(displayText)}</div>`;
       }
 
       const bubbleClass = isOfflinePending ? 'chat-bubble-me-pending' : (isMe ? 'chat-bubble-me' : 'chat-bubble-them');
@@ -895,7 +930,19 @@
 
       try {
         const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        mediaRecorder = new MediaRecorder(stream);
+        
+        let mimeType = 'audio/webm';
+        if (!MediaRecorder.isTypeSupported('audio/webm')) {
+          if (MediaRecorder.isTypeSupported('audio/mp4')) {
+            mimeType = 'audio/mp4';
+          } else if (MediaRecorder.isTypeSupported('audio/aac')) {
+            mimeType = 'audio/aac';
+          } else {
+            mimeType = '';
+          }
+        }
+
+        mediaRecorder = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
         audioChunks = [];
 
         mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
@@ -917,7 +964,7 @@
       document.getElementById('voiceRecordingBar').classList.add('hidden');
 
       mediaRecorder.onstop = async () => {
-        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+        const audioBlob = new Blob(audioChunks, { type: mediaRecorder.mimeType || 'audio/webm' });
         const reader = new FileReader();
         reader.readAsDataURL(audioBlob);
         reader.onloadend = async () => {
