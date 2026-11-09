@@ -1,4 +1,4 @@
-<!-- 20261109 v24 -->
+<!-- 20261109 v25 -->
 <!-- try to add more function like PDF, URL and offline works, delete group -->
 <!-- try to Link Previews, Read Receipts, Online Presence, Attachment -->
 <!-- try to fix Timers, Action Menus, Emojis, Voice & Offline Sync) -->
@@ -709,28 +709,45 @@ function renderFilteredMessages(messages, forceScroll = false) {
       activeSelectedMsgId = msgId;
       const deleteEveryoneBtn = document.getElementById('deleteEveryoneBtn');
       const editBtn = document.getElementById('editMessageBtn');
+
       if (isMe) {
-        deleteEveryoneBtn.classList.remove('hidden'); deleteEveryoneBtn.classList.add('flex');
-        editBtn.classList.remove('hidden'); editBtn.classList.add('flex');
+        deleteEveryoneBtn.classList.remove('hidden');
+        deleteEveryoneBtn.classList.add('flex');
+        editBtn.classList.remove('hidden');
+        editBtn.classList.add('flex');
       } else {
-        deleteEveryoneBtn.classList.add('hidden'); deleteEveryoneBtn.classList.remove('flex');
-        editBtn.classList.add('hidden'); editBtn.classList.remove('flex');
+        deleteEveryoneBtn.classList.add('hidden');
+        deleteEveryoneBtn.classList.remove('flex');
+        editBtn.classList.add('hidden');
+        editBtn.classList.remove('flex');
       }
       document.getElementById('actionMenuModal').classList.remove('hidden');
     }
 
-    function closeActionMenu() { document.getElementById('actionMenuModal').classList.add('hidden'); activeSelectedMsgId = null; }
+    function closeActionMenu() {
+      document.getElementById('actionMenuModal').classList.add('hidden');
+      activeSelectedMsgId = null;
+    }
+
     function copyActiveMessage() {
       const msg = allLoadedMessages.find(m => m.id === activeSelectedMsgId);
-      if (msg) navigator.clipboard.writeText(decryptText(msg.message_text));
+      if (msg) {
+        const text = decryptText(msg.message_text);
+        navigator.clipboard.writeText(text).then(() => {
+          alert("Message copied to clipboard!");
+        });
+      }
       closeActionMenu();
     }
+
     function prepareEditActiveMessage() {
       const msg = allLoadedMessages.find(m => m.id === activeSelectedMsgId);
       if (msg) {
         editingMessageId = activeSelectedMsgId;
-        document.getElementById('messageInput').value = decryptText(msg.message_text);
-        document.getElementById('messageInput').focus();
+        const text = decryptText(msg.message_text);
+        const input = document.getElementById('messageInput');
+        input.value = text;
+        input.focus();
         document.getElementById('sendSubmitBtn').innerHTML = '<i class="fas fa-check text-xs"></i>';
       }
       closeActionMenu();
