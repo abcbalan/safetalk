@@ -626,7 +626,7 @@ function renderFilteredMessages(messages, forceScroll = false) {
       return `${hrs}h left`;
     }
 
-    function renderSingleMessage(msg) {
+function renderSingleMessage(msg) {
       const chatContainer = document.getElementById('chatMessages');
       const isMe = msg.sender_email === currentUser.email;
       const isOfflinePending = msg.id && msg.id.toString().startsWith('offline_');
@@ -658,11 +658,28 @@ function renderFilteredMessages(messages, forceScroll = false) {
       bubbleEl.innerHTML = contentHtml;
 
       let pressTimer = null;
+      let isSwiping = false;
       const triggerActionMenu = (e) => { e.preventDefault(); openActionMenu(msg.id, isMe); };
 
-      bubbleEl.addEventListener('mousedown', (e) => { if (e.button === 2) { triggerActionMenu(e); return; } pressTimer = setTimeout(() => triggerActionMenu(e), 500); });
+      bubbleEl.addEventListener('mousedown', (e) => { 
+        if (e.button === 2) { triggerActionMenu(e); return; } 
+        pressTimer = setTimeout(() => triggerActionMenu(e), 500); 
+      });
       bubbleEl.addEventListener('mouseup', () => clearTimeout(pressTimer));
-      bubbleEl.addEventListener('touchstart', () => { pressTimer = setTimeout(() => triggerActionMenu(event), 500); }, { passive: true });
+      bubbleEl.addEventListener('mousemove', () => clearTimeout(pressTimer));
+
+      bubbleEl.addEventListener('touchstart', () => {
+        isSwiping = false;
+        pressTimer = setTimeout(() => {
+          if (!isSwiping) triggerActionMenu(event);
+        }, 500);
+      }, { passive: true });
+
+      bubbleEl.addEventListener('touchmove', () => {
+        isSwiping = true;
+        clearTimeout(pressTimer);
+      }, { passive: true });
+
       bubbleEl.addEventListener('touchend', () => clearTimeout(pressTimer));
       bubbleEl.addEventListener('contextmenu', (e) => e.preventDefault());
 
@@ -670,7 +687,6 @@ function renderFilteredMessages(messages, forceScroll = false) {
       wrapper.appendChild(bubbleEl);
       chatContainer.appendChild(wrapper);
     }
-
     function formatTextWithLinkPreviews(text) {
       const youtubeMatch = text.match(/(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
       if (youtubeMatch && youtubeMatch[1]) {
