@@ -1,4 +1,4 @@
-<!-- 20261109 v17 -->
+<!-- 20261109 v18 -->
 <!-- try to add more function like PDF, URL and offline works, delete group -->
 <!-- try to Link Previews, Read Receipts, Online Presence, Attachment -->
 
@@ -14,7 +14,6 @@
   <style>
     html, body { width: 100%; height: 100%; margin: 0; padding: 0; overflow: hidden; -webkit-touch-callout: none; }
     .chat-bubble-me { background: #15803d; color: white; border-bottom-right-radius: 4px; word-break: break-word; }
-    .chat-bubble-me-pending { background: #15803d; color: white; opacity: 0.65; border-bottom-right-radius: 4px; word-break: break-word; border: 1.5px dashed #a7f3d0; }
     .chat-bubble-them { background: #ffffff; color: #0f172a; border-bottom-left-radius: 4px; border: 1px solid #e2e8f0; word-break: break-word; }
     body.text-sm-custom { font-size: 0.875rem; }
     body.text-lg-custom { font-size: 1rem; }
@@ -57,6 +56,7 @@
 
   <!-- MAIN APP CONTAINER -->
   <div class="flex-1 flex overflow-hidden relative">
+    
     <!-- CHATS LIST SCREEN -->
     <div id="chatsListScreen" class="w-full md:w-80 bg-white border-r border-slate-200 flex flex-col shrink-0 h-full absolute md:relative z-20 inset-0">
       <div class="p-3 bg-slate-50 border-b border-slate-100 flex flex-col gap-2 shrink-0">
@@ -64,13 +64,9 @@
           <input type="text" id="chatSearchInput" oninput="filterChatList(this.value)" placeholder="Search conversations..." class="w-full bg-white px-3 py-2 pl-8 rounded-xl border border-slate-300 focus:outline-none focus:ring-1 focus:ring-emerald-600 text-xs">
           <i class="fas fa-search absolute left-2.5 top-3 text-slate-400"></i>
         </div>
-        <button onclick="openGroupCreateModal()" class="w-full py-2 bg-emerald-700 hover:bg-emerald-800 text-white font-semibold rounded-xl shadow transition flex items-center justify-center space-x-1.5 text-xs">
-          <i class="fas fa-plus"></i>
-          <span>Create New Group</span>
-        </button>
       </div>
 
-      <div class="p-2 pb-1 font-bold uppercase tracking-wider text-slate-400 px-3 opacity-80 text-[10px]">Conversations</div>
+      <div class="p-2 pb-1 font-bold uppercase tracking-wider text-slate-400 px-3 opacity-80 text-[10px]">Family Members</div>
       <div id="conversationsContainer" class="flex-1 overflow-y-auto divide-y divide-slate-100"></div>
     </div>
 
@@ -81,35 +77,11 @@
           <input type="text" id="historySearchInput" oninput="filterMessageHistory()" placeholder="Search messages..." class="w-full bg-slate-100 px-3 py-1.5 pl-8 rounded-lg border border-slate-300 focus:outline-none text-xs">
           <i class="fas fa-search absolute left-2.5 top-2 text-slate-400 text-xs"></i>
         </div>
-
-        <div class="flex items-center space-x-1.5 shrink-0">
-          <select id="retentionSelect" class="bg-slate-100 border border-slate-300 rounded-lg px-2 py-1.5 text-slate-700 focus:outline-none font-medium text-xs">
-            <option value="forever" selected>⏳ Keep Forever</option>
-            <option value="1m">⏱️ 1 Min Test</option>
-            <option value="8h">⏳ 8 Hours</option>
-            <option value="7d">⏳ 1 Week</option>
-          </select>
-          <select id="fontSizeSelect" onchange="changeFontSize(this.value)" class="bg-slate-100 border border-slate-300 rounded-lg px-2 py-1.5 focus:outline-none text-xs">
-            <option value="sm">Normal</option>
-            <option value="lg">Large</option>
-            <option value="xl">XL</option>
-          </select>
-        </div>
+        <button onclick="logout()" class="px-3 py-1.5 bg-red-50 text-red-600 rounded-lg font-bold text-xs hover:bg-red-100 transition">Logout</button>
       </div>
 
       <!-- MESSAGES DISPLAY AREA -->
       <div id="chatMessages" class="flex-1 p-4 overflow-y-auto space-y-3"></div>
-
-      <!-- VOICE RECORDING BAR -->
-      <div id="voiceRecordingBar" class="hidden px-4 py-2 bg-emerald-50 border-t border-emerald-200 flex items-center justify-between shrink-0">
-        <div class="flex items-center space-x-2">
-          <span class="w-3 h-3 rounded-full bg-red-500 animate-ping"></span>
-          <span class="font-bold text-slate-700 text-xs" id="recordingTimer">Recording: 0s</span>
-        </div>
-        <button type="button" onclick="stopAndSendVoice()" class="px-3 py-1 bg-emerald-700 text-white font-bold rounded-lg shadow hover:bg-emerald-800 text-xs">
-          <i class="fas fa-paper-plane mr-1"></i> Send Voice
-        </button>
-      </div>
 
       <!-- INPUT BAR -->
       <form onsubmit="handleMessageSubmit(event)" class="p-3 bg-white border-t border-slate-200 flex flex-col gap-2 shadow-lg shrink-0">
@@ -124,18 +96,27 @@
             <input type="file" id="chatDocInput" accept=".pdf,.doc,.docx,.xls,.xlsx,.txt" class="hidden" onchange="handleDocSelected(event)">
           </label>
 
-          <button type="button" id="micBtn" onclick="toggleVoiceRecording()" class="p-2.5 bg-slate-100 hover:bg-slate-200 text-emerald-700 rounded-full transition flex items-center justify-center shrink-0" title="Record Voice">
-            <i class="fas fa-microphone text-sm"></i>
-          </button>
-
           <input type="text" id="messageInput" placeholder="SafeTalk message or link..." class="flex-1 px-4 py-2 border border-slate-300 rounded-full focus:outline-none focus:ring-2 focus:ring-emerald-600 bg-white text-xs">
           
-          <button type="submit" id="sendSubmitBtn" class="w-9 h-9 bg-emerald-700 hover:bg-emerald-800 text-white rounded-full shadow transition flex items-center justify-center shrink-0">
+          <button type="submit" class="w-9 h-9 bg-emerald-700 hover:bg-emerald-800 text-white rounded-full shadow transition flex items-center justify-center shrink-0">
             <i class="fas fa-paper-plane text-xs"></i>
           </button>
         </div>
       </form>
     </main>
+  </div>
+
+  <!-- CUSTOM LOGIN MODAL -->
+  <div id="customLoginModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
+    <div class="bg-white w-full max-w-sm rounded-2xl shadow-2xl p-5 flex flex-col gap-3">
+      <h3 class="font-bold text-slate-900 text-sm flex items-center gap-2">
+        <i class="fas fa-shield-halved text-emerald-700"></i> SafeTalk Family Login
+      </h3>
+      <input type="email" id="loginEmailInput" placeholder="Email (e.g. mum@family.com)" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs">
+      <input type="password" id="loginPasswordInput" placeholder="Password" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs">
+      <div id="loginErrorMsg" class="text-red-500 text-xs hidden"></div>
+      <button type="button" onclick="submitCustomLogin()" class="w-full py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white font-bold rounded-xl shadow text-xs">Login</button>
+    </div>
   </div>
 
   <script>
@@ -152,12 +133,9 @@
     ];
 
     let currentUser = null;
-    let currentChatType = 'direct';
     let currentRecipientEmail = null;
-    let currentGroupId = null;
     let onlineUsersMap = new Map();
     let allLoadedMessages = [];
-    let customGroups = JSON.parse(localStorage.getItem('safetalk_custom_groups') || '[]');
 
     function encryptText(text) {
       if (!text || text.startsWith('http') || text.startsWith('data:audio') || text.startsWith('DOC:')) return text;
@@ -180,16 +158,102 @@
       } catch(e) { return cipherText; }
     }
 
+    async function initApp() {
+      const { data: { session } } = await supabaseClient.auth.getSession();
+      if (!session) {
+        document.getElementById('customLoginModal').classList.remove('hidden');
+      } else {
+        currentUser = session.user;
+        postLoginInit();
+      }
+    }
+
+    async function submitCustomLogin() {
+      const email = document.getElementById('loginEmailInput').value.trim();
+      const password = document.getElementById('loginPasswordInput').value.trim();
+      const errDiv = document.getElementById('loginErrorMsg');
+      errDiv.classList.add('hidden');
+
+      if (!email || !password) {
+        errDiv.innerText = "Please enter email and password.";
+        errDiv.classList.remove('hidden');
+        return;
+      }
+
+      const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+      if (error) {
+        errDiv.innerText = "Login failed: " + error.message;
+        errDiv.classList.remove('hidden');
+        return;
+      }
+
+      currentUser = data.user;
+      document.getElementById('customLoginModal').classList.add('hidden');
+      postLoginInit();
+    }
+
+    async function logout() {
+      await supabaseClient.auth.signOut();
+      location.reload();
+    }
+
+    function postLoginInit() {
+      setupUserInterface();
+      renderConversationsList();
+      initPresenceTracking();
+      loadMessagesFromCloud();
+      startRealtimeSubscription();
+    }
+
+    function setupUserInterface() {
+      const member = familyMembers.find(m => m.email === currentUser.email) || { name: currentUser.email.split('@')[0], icon: "fa-user", bg: "bg-emerald-600" };
+      document.getElementById('currentUserBadge').innerText = `👤 ${member.name}`;
+      document.getElementById('headerAvatar').innerHTML = `<i class="fas ${member.icon}"></i>`;
+      document.getElementById('headerAvatar').className = `w-9 h-9 rounded-full ${member.bg} flex items-center justify-center font-bold text-white shadow border border-emerald-500 shrink-0`;
+    }
+
+    function renderConversationsList(filter = '') {
+      const container = document.getElementById('conversationsContainer');
+      if (!container) return;
+      container.innerHTML = '';
+
+      familyMembers.forEach(member => {
+        if (member.email !== currentUser.email && (!filter || member.name.toLowerCase().includes(filter.toLowerCase()))) {
+          const isOnline = onlineUsersMap.has(member.email);
+          const div = document.createElement('div');
+          div.className = `p-3.5 hover:bg-slate-50 cursor-pointer transition flex items-center space-x-3`;
+          div.onclick = () => openChatRoom(member.email, member.name, member.bg, member.icon);
+          div.innerHTML = `
+            <div class="w-11 h-11 rounded-full ${member.bg} flex items-center justify-center text-white font-bold shrink-0 shadow-sm relative">
+              <i class="fas ${member.icon}"></i>
+              <span class="absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full border-2 border-white ${isOnline ? 'bg-emerald-500' : 'bg-slate-300'}" title="${isOnline ? 'Online' : 'Offline'}"></span>
+            </div>
+            <div class="flex-1 min-w-0">
+              <div class="text-slate-800 font-semibold flex justify-between items-center">
+                <span>${member.name}</span>
+                <span class="text-[10px] ${isOnline ? 'text-emerald-600 font-bold' : 'text-slate-400'}">${isOnline ? 'Online' : 'Offline'}</span>
+              </div>
+              <div class="text-slate-500 truncate text-xs">Direct encrypted message</div>
+            </div>
+          `;
+          container.appendChild(div);
+        }
+      });
+    }
+
+    function filterChatList(query) {
+      renderConversationsList(query);
+    }
+
     async function initPresenceTracking() {
       const presenceChannel = supabaseClient.channel('online-users');
-
       presenceChannel
         .on('presence', { event: 'sync' }, () => {
           const state = presenceChannel.presenceState();
           onlineUsersMap.clear();
           Object.keys(state).forEach(key => {
             const presences = state[key];
-            if (presences && presences.length > 0) {
+            if (presences) {
               presences.forEach(user => onlineUsersMap.set(user.email, true));
             }
           });
@@ -204,39 +268,65 @@
     }
 
     function updateHeaderPresence() {
-      if (currentChatType === 'direct' && currentRecipientEmail) {
+      if (currentRecipientEmail) {
         const isOnline = onlineUsersMap.has(currentRecipientEmail);
         document.getElementById('activeChatSub').innerText = isOnline ? "🟢 Online now" : "Offline";
       }
     }
 
-    function renderConversationsList(filter = '') {
-      const container = document.getElementById('conversationsContainer');
-      if (!container) return;
-      container.innerHTML = '';
+    function openChatRoom(email, name, bgClass, iconClass) {
+      currentRecipientEmail = email;
+      document.getElementById('activeChatTitle').innerText = name;
+      document.getElementById('chatsListScreen').classList.add('hidden', 'md:flex');
+      document.getElementById('chatRoomScreen').classList.remove('hidden');
+      document.getElementById('backBtn').classList.remove('hidden');
+      updateHeaderPresence();
+      markMessagesAsRead();
+      filterAndRenderMessages(true);
+    }
 
-      familyMembers.forEach(member => {
-        if (member.email !== currentUser.email && (!filter || member.name.toLowerCase().includes(filter.toLowerCase()))) {
-          const isOnline = onlineUsersMap.has(member.email);
-          const div = document.createElement('div');
-          div.className = `p-3.5 hover:bg-slate-50 cursor-pointer transition flex items-center space-x-3`;
-          div.onclick = () => openChatRoom('direct', member.email, member.name, member.bg, member.icon);
-          div.innerHTML = `
-            <div class="w-11 h-11 rounded-full ${member.bg} flex items-center justify-center text-white font-bold shrink-0 shadow-sm relative">
-              <i class="fas ${member.icon}"></i>
-              <span class="absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full border-2 border-white ${isOnline ? 'bg-emerald-500' : 'bg-slate-300'}" title="${isOnline ? 'Online' : 'Offline'}"></span>
-            </div>
-            <div class="flex-1 min-w-0">
-              <div class="text-slate-800 font-semibold flex justify-between items-center">
-                <span>${member.name}</span>
-                <span class="text-[10px] ${isOnline ? 'text-emerald-600 font-bold' : 'text-slate-400'}">${isOnline ? 'Online' : 'Offline'}</span>
-              </div>
-              <div class="text-slate-500 truncate text-xs">Tap to chat</div>
-            </div>
-          `;
-          container.appendChild(div);
-        }
+    function returnToChatList() {
+      document.getElementById('chatsListScreen').classList.remove('hidden', 'md:flex');
+      document.getElementById('chatRoomScreen').classList.add('hidden');
+      document.getElementById('backBtn').classList.add('hidden');
+      document.getElementById('activeChatTitle').innerText = "SafeTalk Chats";
+      document.getElementById('activeChatSub').innerText = "Select a conversation to start";
+      setupUserInterface();
+      renderConversationsList();
+    }
+
+    async function loadMessagesFromCloud() {
+      const { data, error } = await supabaseClient.from('messages').select('*').order('created_at', { ascending: true });
+      if (!error && data) {
+        allLoadedMessages = data;
+        filterAndRenderMessages(true);
+      }
+    }
+
+    function startRealtimeSubscription() {
+      supabaseClient
+        .channel('public:messages')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, payload => {
+          if (payload.eventType === 'INSERT') {
+            allLoadedMessages.push(payload.new);
+            filterAndRenderMessages(true);
+          }
+        })
+        .subscribe();
+    }
+
+    function filterAndRenderMessages(forceScroll = false) {
+      const chatContainer = document.getElementById('chatMessages');
+      if (!chatContainer) return;
+      chatContainer.innerHTML = '';
+
+      const relevant = allLoadedMessages.filter(msg => {
+        return (msg.sender_email === currentUser.email && msg.recipient_email === currentRecipientEmail) ||
+               (msg.sender_email === currentRecipientEmail && msg.recipient_email === currentUser.email);
       });
+
+      relevant.forEach(msg => renderSingleMessage(msg));
+      if (forceScroll) chatContainer.scrollTop = chatContainer.scrollHeight;
     }
 
     function renderSingleMessage(msg) {
@@ -245,17 +335,12 @@
 
       const isDoc = msg.message_text.startsWith('DOC:');
       const isImage = !isDoc && (msg.message_text.startsWith('http://') || msg.message_text.startsWith('https://')) && (msg.message_text.includes('.jpg') || msg.message_text.includes('.png') || msg.message_text.includes('.jpeg'));
-      const isVoice = !isDoc && (msg.message_text.startsWith('data:audio') || msg.message_text.includes('.webm') || msg.message_text.includes('.mp3'));
 
-      let displayText = (isImage || isVoice || isDoc) ? msg.message_text : decryptText(msg.message_text);
+      let displayText = isDoc || isImage ? msg.message_text : decryptText(msg.message_text);
 
       let readReceiptHtml = '';
       if (isMe) {
-        if (msg.is_read) {
-          readReceiptHtml = '<span class="text-sky-300 font-bold text-xs ml-1" title="Read">✓✓</span>';
-        } else {
-          readReceiptHtml = '<span class="text-slate-300 text-xs ml-1" title="Sent">✓</span>';
-        }
+        readReceiptHtml = msg.is_read ? '<span class="text-sky-300 font-bold text-xs ml-1">✓✓</span>' : '<span class="text-slate-300 text-xs ml-1">✓</span>';
       }
 
       let contentHtml = '';
@@ -269,8 +354,6 @@
               <div class="text-[10px] opacity-75">Download document</div>
             </div>
           </a>`;
-      } else if (isVoice) {
-        contentHtml = `<audio controls src="${displayText}" class="h-8 max-w-[180px]"></audio>`;
       } else if (isImage) {
         contentHtml = `<img src="${displayText}" class="rounded-xl max-w-xs max-h-64 object-cover shadow">`;
       } else {
@@ -294,52 +377,92 @@
     function formatTextWithLinkPreviews(text) {
       const youtubeMatch = text.match(/(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
       if (youtubeMatch && youtubeMatch[1]) {
-        const embedUrl = `https://www.youtube.com/embed/${youtubeMatch[1]}`;
         return `
           <div>${text}</div>
           <div class="mt-2 rounded-xl overflow-hidden border border-slate-300 bg-black">
-            <iframe class="w-full h-44" src="${embedUrl}" frameborder="0" allowfullscreen></iframe>
+            <iframe class="w-full h-44" src="https://www.youtube.com/embed/${youtubeMatch[1]}" frameborder="0" allowfullscreen></iframe>
           </div>
         `;
       }
-
-      const urlRegex = /(https?:\/\/[^\s]+)/g;
-      if (urlRegex.test(text)) {
-        const targetUrl = text.match(urlRegex)[0];
-        const previewId = `prev_${Math.random().toString(36).substr(2, 9)}`;
-        fetchLinkPreview(targetUrl, previewId);
-
-        return `
-          <div>${text.replace(urlRegex, `<a href="$1" target="_blank" class="underline font-bold">$1</a>`)}</div>
-          <div id="${previewId}" class="mt-2 p-2 bg-slate-800/30 rounded-xl border border-slate-600/40 text-xs">
-            <i class="fas fa-spinner fa-spin text-emerald-300"></i> Loading link preview...
-          </div>
-        `;
-      }
-
-      return text;
+      return `<div>${text}</div>`;
     }
 
-    async function fetchLinkPreview(url, elementId) {
-      try {
-        const res = await fetch(`https://api.microlink.io?url=${encodeURIComponent(url)}`);
-        const json = await res.json();
-        const container = document.getElementById(elementId);
-        if (container && json.status === 'success' && json.data) {
-          const { title, description, image } = json.data;
-          container.innerHTML = `
-            <a href="${url}" target="_blank" class="block hover:opacity-90">
-              ${image ? `<img src="${image.url}" class="w-full h-24 object-cover rounded-lg mb-1">` : ''}
-              <div class="font-bold text-emerald-300 truncate">${title || url}</div>
-              ${description ? `<div class="text-[10px] opacity-80 line-clamp-2">${description}</div>` : ''}
-            </a>
-          `;
-        }
-      } catch(e) {}
+    async function handleMessageSubmit(e) {
+      e.preventDefault();
+      const input = document.getElementById('messageInput');
+      const text = input.value.trim();
+      if (!text || !currentRecipientEmail) return;
+      input.value = '';
+
+      const cipherText = encryptText(text);
+      const newMessage = {
+        sender_email: currentUser.email,
+        sender_name: currentUser.email.split('@')[0],
+        message_text: cipherText,
+        recipient_email: currentRecipientEmail,
+        is_read: false,
+        created_at: new Date().toISOString()
+      };
+
+      const { data, error } = await supabaseClient.from('messages').insert([newMessage]).select();
+      if (!error && data && data[0]) {
+        allLoadedMessages.push(data[0]);
+        filterAndRenderMessages(true);
+      }
+    }
+
+    async function handleImageSelected(e) {
+      const file = e.target.files[0];
+      if (!file || !currentRecipientEmail) return;
+
+      const fileName = `safetalk_${Date.now()}_${Math.random()}.jpg`;
+      const { error: uploadError } = await supabaseClient.storage.from('car-photos').upload(`car-photos/${fileName}`, file);
+      if (uploadError) return;
+
+      const { data: publicUrlData } = supabaseClient.storage.from('car-photos').getPublicUrl(`car-photos/${fileName}`);
+      const newMessage = {
+        sender_email: currentUser.email,
+        sender_name: currentUser.email.split('@')[0],
+        message_text: publicUrlData.publicUrl,
+        recipient_email: currentRecipientEmail,
+        is_read: false,
+        created_at: new Date().toISOString()
+      };
+
+      const { data, error } = await supabaseClient.from('messages').insert([newMessage]).select();
+      if (!error && data && data[0]) {
+        allLoadedMessages.push(data[0]);
+        filterAndRenderMessages(true);
+      }
+    }
+
+    async function handleDocSelected(e) {
+      const file = e.target.files[0];
+      if (!file || !currentRecipientEmail) return;
+
+      const fileName = `doc_${Date.now()}_${file.name}`;
+      const { error: uploadError } = await supabaseClient.storage.from('car-photos').upload(`documents/${fileName}`, file);
+      if (uploadError) return;
+
+      const { data: publicUrlData } = supabaseClient.storage.from('car-photos').getPublicUrl(`documents/${fileName}`);
+      const newMessage = {
+        sender_email: currentUser.email,
+        sender_name: currentUser.email.split('@')[0],
+        message_text: `DOC:${file.name}|${publicUrlData.publicUrl}`,
+        recipient_email: currentRecipientEmail,
+        is_read: false,
+        created_at: new Date().toISOString()
+      };
+
+      const { data, error } = await supabaseClient.from('messages').insert([newMessage]).select();
+      if (!error && data && data[0]) {
+        allLoadedMessages.push(data[0]);
+        filterAndRenderMessages(true);
+      }
     }
 
     async function markMessagesAsRead() {
-      if (currentChatType === 'direct' && currentRecipientEmail) {
+      if (currentRecipientEmail) {
         await supabaseClient
           .from('messages')
           .update({ is_read: true })
@@ -349,17 +472,7 @@
       }
     }
 
-    async function openChatRoom(type, identifier, name, bgClass, iconClass) {
-      currentChatType = type;
-      currentRecipientEmail = identifier;
-      document.getElementById('activeChatTitle').innerText = name;
-      document.getElementById('chatsListScreen').classList.add('hidden', 'md:flex');
-      document.getElementById('chatRoomScreen').classList.remove('hidden');
-      document.getElementById('backBtn').classList.remove('hidden');
-      updateHeaderPresence();
-      await markMessagesAsRead();
-      loadMessagesFromCloud();
-    }
+    document.addEventListener('DOMContentLoaded', initApp);
   </script>
 </body>
 </html>
