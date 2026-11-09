@@ -1,5 +1,7 @@
-<!-- 20261106 v14 Delete for everyone immediately -->
-<!-- Works Perfectly -->
+<!-- 20261109 v15 -->
+<!-- try to add more function like PDF, URL and offline works -->
+<!-- SafeTalk Messenger - Release v15 -->
+<!-- Fixes: PWA Offline mode, Document/PDF attachments, Clickable Links/YouTube, Custom Modals (No domain alerts) -->
 
 <!DOCTYPE html>
 <html lang="en">
@@ -153,6 +155,11 @@
             <input type="file" id="chatImageInput" accept="image/*" class="hidden" onchange="handleImageSelected(event)">
           </label>
 
+          <label class="p-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-full cursor-pointer transition flex items-center justify-center shrink-0" title="Attach Document or PDF">
+            <i class="fas fa-paperclip text-sm"></i>
+            <input type="file" id="chatDocInput" accept=".pdf,.doc,.docx,.xls,.xlsx,.txt" class="hidden" onchange="handleDocSelected(event)">
+          </label>
+
           <button type="button" id="micBtn" onclick="toggleVoiceRecording()" class="p-2.5 bg-slate-100 hover:bg-slate-200 text-emerald-700 rounded-full transition flex items-center justify-center shrink-0" title="Record Voice">
             <i class="fas fa-microphone text-sm"></i>
           </button>
@@ -161,7 +168,7 @@
             <i class="fas fa-face-smile text-sm"></i>
           </button>
 
-          <input type="text" id="messageInput" placeholder="SafeTalk message..." class="flex-1 px-4 py-2 border border-slate-300 rounded-full focus:outline-none focus:ring-2 focus:ring-emerald-600 bg-white text-xs">
+          <input type="text" id="messageInput" placeholder="SafeTalk message or link..." class="flex-1 px-4 py-2 border border-slate-300 rounded-full focus:outline-none focus:ring-2 focus:ring-emerald-600 bg-white text-xs">
           
           <button type="submit" id="sendSubmitBtn" class="w-9 h-9 bg-emerald-700 hover:bg-emerald-800 text-white rounded-full shadow transition flex items-center justify-center shrink-0">
             <i class="fas fa-paper-plane text-xs"></i>
@@ -171,12 +178,24 @@
     </main>
   </div>
 
-  <!-- ACTION MENU MODAL / SHEET -->
+  <!-- CUSTOM LOGIN MODAL (Replaces browser prompts) -->
+  <div id="customLoginModal" class="fixed inset-0 bg-black/70 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4">
+    <div class="bg-white w-full max-w-sm rounded-2xl shadow-2xl p-5 flex flex-col gap-3">
+      <h3 class="font-bold text-slate-900 text-sm flex items-center gap-2">
+        <i class="fas fa-shield-halved text-emerald-700"></i> SafeTalk Family Login
+      </h3>
+      <input type="email" id="loginEmailInput" placeholder="Email (e.g. dad@family.com)" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs">
+      <input type="password" id="loginPasswordInput" placeholder="Password" class="w-full px-3 py-2 border border-slate-300 rounded-xl text-xs">
+      <div id="loginErrorMsg" class="text-red-500 text-xs hidden"></div>
+      <button type="button" onclick="submitCustomLogin()" class="w-full py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white font-bold rounded-xl shadow text-xs">Login</button>
+    </div>
+  </div>
+
+  <!-- ACTION MENU MODAL -->
   <div id="actionMenuModal" class="fixed inset-0 bg-black/60 backdrop-blur-sm hidden z-50 flex items-center justify-center p-4" onclick="closeActionMenu()">
     <div class="bg-white w-full max-w-xs rounded-2xl shadow-2xl p-5 flex flex-col gap-3 my-auto max-h-[90vh] overflow-y-auto" onclick="event.stopPropagation()">
       <div class="text-xs font-bold text-slate-400 uppercase tracking-wider text-center mb-1">Message Options</div>
       
-      <!-- Quick Reactions Row -->
       <div class="flex justify-around bg-slate-50 p-2 rounded-xl border border-slate-100 text-xl">
         <button type="button" onclick="addReaction('❤️')" class="hover:scale-125 transition">❤️</button>
         <button type="button" onclick="addReaction('👍')" class="hover:scale-125 transition">👍</button>
@@ -245,6 +264,10 @@
   </div>
 
   <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('./sw.js').catch(() => {});
+    }
+
     const SUPABASE_URL = 'https://yigcsrhbsietdmdylooi.supabase.co';
     const SUPABASE_ANON_KEY = 'sb_publishable_fl7g8SR6zNJmo06dw4EB1Q_s8ee16Je';
     const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -272,6 +295,7 @@
     let currentRecipientEmail = null;
     let currentGroupId = null;
     let selectedImageFile = null;
+    let selectedDocFile = null;
     let allLoadedMessages = [];
     let customGroups = JSON.parse(localStorage.getItem('safetalk_custom_groups') || '[]');
     let unreadCounts = JSON.parse(localStorage.getItem('safetalk_unread') || '{}');
@@ -288,7 +312,7 @@
     let shouldAutoScroll = true;
 
     function encryptText(text) {
-      if (text.startsWith('http') || text.startsWith('data:audio')) return text;
+      if (text.startsWith('http') || text.startsWith('data:audio') || text.startsWith('DOC:')) return text;
       try {
         const encoded = encodeURIComponent(text);
         return "ENC:" + btoa(encoded.split('').map((c, i) => 
@@ -316,18 +340,38 @@
       const { data: { session } } = await supabaseClient.auth.getSession();
       
       if (!session) {
-        const email = prompt("Enter your SafeTalk email (mum@family.com, dad@family.com, alex@family.com, sarah@family.com):", "dad@family.com");
-        if (!email) return;
-        const password = prompt("Enter your password:", "123456");
-        if (!password) return;
-
-        const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
-        if (error) { alert("Login failed: " + error.message); location.reload(); return; }
-        currentUser = data.user;
+        document.getElementById('customLoginModal').classList.remove('hidden');
       } else {
         currentUser = session.user;
+        postLoginInit();
+      }
+    }
+
+    async function submitCustomLogin() {
+      const email = document.getElementById('loginEmailInput').value.trim();
+      const password = document.getElementById('loginPasswordInput').value.trim();
+      const errDiv = document.getElementById('loginErrorMsg');
+      errDiv.classList.add('hidden');
+
+      if (!email || !password) {
+        errDiv.innerText = "Please enter email and password.";
+        errDiv.classList.remove('hidden');
+        return;
       }
 
+      const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+      if (error) {
+        errDiv.innerText = "Login failed: " + error.message;
+        errDiv.classList.remove('hidden');
+        return;
+      }
+
+      currentUser = data.user;
+      document.getElementById('customLoginModal').classList.add('hidden');
+      postLoginInit();
+    }
+
+    function postLoginInit() {
       setupUserInterface();
       renderConversationsList();
       startRealtimeSubscription();
@@ -433,7 +477,7 @@
     }
 
     function getGlobalCacheKey() {
-      return `safetalk_global_messages_v19`;
+      return `safetalk_global_messages_v20`;
     }
 
     function saveGlobalCache() {
@@ -484,7 +528,6 @@
             saveGlobalCache();
             filterAndRenderMessages(false);
           } else {
-            // Re-fetch latest snapshot on INSERT/UPDATE to guarantee instant sync
             const { data, error } = await supabaseClient
               .from('messages')
               .select('*')
@@ -576,7 +619,7 @@
         return;
       }
       const filtered = validMsgs.filter(msg => {
-        const text = msg.message_text.startsWith('http') || msg.message_text.startsWith('data:audio') ? '' : decryptText(msg.message_text).toLowerCase();
+        const text = msg.message_text.startsWith('http') || msg.message_text.startsWith('data:audio') || msg.message_text.startsWith('DOC:') ? '' : decryptText(msg.message_text).toLowerCase();
         return text.includes(query) || msg.sender_name.toLowerCase().includes(query);
       });
       renderFilteredMessages(filtered, false);
@@ -626,15 +669,32 @@
       return `${hrs}h left`;
     }
 
+    function formatTextWithLinks(text) {
+      const youtubeMatch = text.match(/(?:https?:\/\/)?(?:www\.)?(?:youtube\.com\/watch\?v=|youtu\.be\/)([a-zA-Z0-9_-]{11})/);
+      if (youtubeMatch && youtubeMatch[1]) {
+        const embedUrl = `https://www.youtube.com/embed/${youtubeMatch[1]}`;
+        return `
+          <div>${text.replace(youtubeMatch[0], `<a href="${youtubeMatch[0]}" target="_blank" class="underline text-blue-200">${youtubeMatch[0]}</a>`)}</div>
+          <div class="mt-2 rounded-xl overflow-hidden border border-slate-300">
+            <iframe class="w-full h-40" src="${embedUrl}" frameborder="0" allowfullscreen></iframe>
+          </div>
+        `;
+      }
+      
+      const urlRegex = /(https?:\/\/[^\s]+)/g;
+      return text.replace(urlRegex, (url) => `<a href="${url}" target="_blank" rel="noopener noreferrer" class="underline text-blue-200 font-medium">${url}</a>`);
+    }
+
     function renderSingleMessage(msg) {
       const chatContainer = document.getElementById('chatMessages');
       const isMe = msg.sender_email === currentUser.email;
       const isOfflinePending = msg.id && msg.id.toString().startsWith('offline_');
-      const isImage = msg.message_text.startsWith('http') && !msg.message_text.includes('.webm') && !msg.message_text.includes('.mp3');
-      const isVoice = msg.message_text.startsWith('data:audio') || msg.message_text.includes('.webm') || msg.message_text.includes('.mp3');
       
-      let displayText = (isImage || isVoice) ? msg.message_text : decryptText(msg.message_text);
-      displayText = displayText.replace(/([\u{1F300}-\u{1F9FF}]|[\u{2600}-\u{26FF}])/gu, '<span class="animated-emoji">$1</span>');
+      const isDoc = msg.message_text.startsWith('DOC:');
+      const isImage = !isDoc && msg.message_text.startsWith('http') && !msg.message_text.includes('.webm') && !msg.message_text.includes('.mp3');
+      const isVoice = !isDoc && (msg.message_text.startsWith('data:audio') || msg.message_text.includes('.webm') || msg.message_text.includes('.mp3'));
+      
+      let displayText = (isImage || isVoice || isDoc) ? msg.message_text : decryptText(msg.message_text);
 
       const timeTag = new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
       const statusSuffix = isOfflinePending ? ' ⏳ (Pending)' : '';
@@ -645,7 +705,20 @@
       wrapper.setAttribute('data-msg-id', msg.id);
 
       let contentHtml = '';
-      if (isImage) {
+      if (isDoc) {
+        const docParts = displayText.replace('DOC:', '').split('|');
+        const docName = docParts[0];
+        const docUrl = docParts[1];
+        contentHtml = `
+          <a href="${docUrl}" target="_blank" download="${docName}" class="flex items-center space-x-2 p-2 bg-slate-50/20 rounded-xl hover:bg-slate-50/40 transition">
+            <i class="fas fa-file-pdf text-red-400 text-xl"></i>
+            <div class="min-w-0">
+              <div class="font-bold text-xs truncate max-w-[160px]">${docName}</div>
+              <div class="text-[10px] opacity-75">Tap to download</div>
+            </div>
+          </a>
+        `;
+      } else if (isImage) {
         contentHtml = `<img src="${displayText}" onclick="openLightbox('${displayText}')" class="rounded-xl max-w-xs max-h-64 object-cover cursor-pointer hover:opacity-90 shadow">`;
       } else if (isVoice) {
         contentHtml = `
@@ -655,7 +728,8 @@
           </div>
         `;
       } else {
-        contentHtml = `<div>${displayText}</div>`;
+        displayText = displayText.replace(/([\u{1F300}-\u{1F9FF}]|[\u{2600}-\u{26FF}])/gu, '<span class="animated-emoji">$1</span>');
+        contentHtml = `<div>${formatTextWithLinks(displayText)}</div>`;
       }
 
       const bubbleClass = isOfflinePending ? 'chat-bubble-me-pending' : (isMe ? 'chat-bubble-me' : 'chat-bubble-them');
@@ -734,9 +808,7 @@
       const msg = allLoadedMessages.find(m => m.id === activeSelectedMsgId);
       if (msg) {
         const text = decryptText(msg.message_text);
-        navigator.clipboard.writeText(text).then(() => {
-          alert("Message copied to clipboard!");
-        });
+        navigator.clipboard.writeText(text);
       }
       closeActionMenu();
     }
@@ -785,10 +857,7 @@
       filterAndRenderMessages(false);
 
       if (scope === 'everyone' && navigator.onLine && !msgId.toString().startsWith('offline_')) {
-        const { error } = await supabaseClient.from('messages').delete().eq('id', msgId);
-        if (error) {
-          alert("Cloud delete error: " + error.message);
-        }
+        await supabaseClient.from('messages').delete().eq('id', msgId);
       }
     }
 
@@ -838,9 +907,7 @@
           recordingSeconds++;
           document.getElementById('recordingTimer').innerText = `Recording: ${recordingSeconds}s`;
         }, 1000);
-      } catch (err) {
-        alert("Microphone access is required for voice messages.");
-      }
+      } catch (err) {}
     }
 
     function stopAndSendVoice() {
@@ -1078,7 +1145,7 @@
       const filePath = `car-photos/${fileName}`;
 
       const { error: uploadError } = await supabaseClient.storage.from('car-photos').upload(filePath, selectedImageFile);
-      if (uploadError) { alert("Upload error: " + uploadError.message); sendBtn.disabled = false; sendBtn.innerText = "Send Photo"; return; }
+      if (uploadError) { sendBtn.disabled = false; sendBtn.innerText = "Send Photo"; return; }
 
       const { data: publicUrlData } = supabaseClient.storage.from('car-photos').getPublicUrl(filePath);
       const senderName = familyMembers.find(m => m.email === currentUser.email)?.name || currentUser.email.split('@')[0];
@@ -1104,6 +1171,41 @@
 
       closeImageModal();
       sendBtn.disabled = false; sendBtn.innerText = "Send Photo";
+    }
+
+    async function handleDocSelected(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const fileName = `doc_${Date.now()}_${file.name}`;
+      const filePath = `documents/${fileName}`;
+
+      const { error: uploadError } = await supabaseClient.storage.from('car-photos').upload(filePath, file);
+      if (uploadError) return;
+
+      const { data: publicUrlData } = supabaseClient.storage.from('car-photos').getPublicUrl(filePath);
+      const senderName = familyMembers.find(m => m.email === currentUser.email)?.name || currentUser.email.split('@')[0];
+
+      const docMessagePayload = `DOC:${file.name}|${publicUrlData.publicUrl}`;
+
+      const newMessage = {
+        sender_email: currentUser.email,
+        sender_name: senderName,
+        message_text: docMessagePayload,
+        channel_type: currentChatType,
+        recipient_email: currentRecipientEmail,
+        group_id: currentGroupId,
+        expires_at: computeExpiryTimestamp(),
+        created_at: new Date().toISOString()
+      };
+
+      shouldAutoScroll = true;
+      const { data, error } = await supabaseClient.from('messages').insert([newMessage]).select();
+      if (!error && data && data[0]) {
+        allLoadedMessages.push(data[0]);
+        saveGlobalCache();
+        filterAndRenderMessages(true);
+      }
     }
 
     function changeFontSize(size) {
