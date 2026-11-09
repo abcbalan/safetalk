@@ -657,9 +657,12 @@ function renderSingleMessage(msg) {
       bubbleEl.className = `max-w-[80%] px-3.5 py-2.5 rounded-2xl shadow-sm relative cursor-pointer ${bubbleClass}`;
       bubbleEl.innerHTML = contentHtml;
 
-      let pressTimer = null;
+let pressTimer = null;
       let isSwiping = false;
-      const triggerActionMenu = (e) => { e.preventDefault(); openActionMenu(msg.id, isMe); };
+      const triggerActionMenu = (e) => { 
+        if (e && e.cancelable) e.preventDefault(); 
+        openActionMenu(msg.id, isMe); 
+      };
 
       bubbleEl.addEventListener('mousedown', (e) => { 
         if (e.button === 2) { triggerActionMenu(e); return; } 
@@ -668,12 +671,12 @@ function renderSingleMessage(msg) {
       bubbleEl.addEventListener('mouseup', () => clearTimeout(pressTimer));
       bubbleEl.addEventListener('mousemove', () => clearTimeout(pressTimer));
 
-      bubbleEl.addEventListener('touchstart', () => {
+      bubbleEl.addEventListener('touchstart', (e) => {
         isSwiping = false;
         pressTimer = setTimeout(() => {
-          if (!isSwiping) triggerActionMenu(event);
+          if (!isSwiping) triggerActionMenu(e);
         }, 500);
-      }, { passive: true });
+      }, { passive: false });
 
       bubbleEl.addEventListener('touchmove', () => {
         isSwiping = true;
