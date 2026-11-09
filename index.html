@@ -1,4 +1,4 @@
-<!-- 20261109 v19 -->
+<!-- 20261109 v20 -->
 <!-- try to add more function like PDF, URL and offline works, delete group -->
 <!-- try to Link Previews, Read Receipts, Online Presence, Attachment -->
 <!-- try to fix Timers, Action Menus, Emojis, Voice & Offline Sync) -->
@@ -209,7 +209,7 @@
     </div>
   </div>
 
-  <script>
+<script>
     const SUPABASE_URL = 'https://yigcsrhbsietdmdylooi.supabase.co';
     const SUPABASE_ANON_KEY = 'sb_publishable_fl7g8SR6zNJmo06dw4EB1Q_s8ee16Je';
     const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
@@ -240,8 +240,6 @@
 
     let mediaRecorder = null;
     let audioChunks = [];
-    let recordingTimerInterval = null;
-    let recordingSeconds = 0;
     let activeSelectedMsgId = null;
     let editingMessageId = null;
 
@@ -272,12 +270,13 @@
         document.getElementById('customLoginModal').classList.remove('hidden');
       } else {
         currentUser = session.user;
+        currentUser.email = currentUser.email.toLowerCase().trim(); // Normalize email
         postLoginInit();
       }
     }
 
     async function submitCustomLogin() {
-      const email = document.getElementById('loginEmailInput').value.trim();
+      const email = document.getElementById('loginEmailInput').value.trim().toLowerCase();
       const password = document.getElementById('loginPasswordInput').value.trim();
       const errDiv = document.getElementById('loginErrorMsg');
       errDiv.classList.add('hidden');
@@ -296,6 +295,7 @@
       }
 
       currentUser = data.user;
+      currentUser.email = currentUser.email.toLowerCase().trim();
       document.getElementById('customLoginModal').classList.add('hidden');
       postLoginInit();
     }
@@ -372,9 +372,7 @@
       });
     }
 
-    function filterChatList(query) {
-      renderConversationsList(query);
-    }
+    function filterChatList(query) { renderConversationsList(query); }
 
     async function initPresenceTracking() {
       const presenceChannel = supabaseClient.channel('online-users');
@@ -385,7 +383,9 @@
           Object.keys(state).forEach(key => {
             const presences = state[key];
             if (presences) {
-              presences.forEach(user => onlineUsersMap.set(user.email, true));
+              presences.forEach(user => {
+                if (user.email) onlineUsersMap.set(user.email.toLowerCase().trim(), true);
+              });
             }
           });
           renderConversationsList();
@@ -539,13 +539,10 @@
       bubbleEl.className = `max-w-[85%] px-3.5 py-2.5 rounded-2xl shadow-sm cursor-pointer ${isOfflinePending ? 'chat-bubble-me-pending' : (isMe ? 'chat-bubble-me' : 'chat-bubble-them')}`;
       bubbleEl.innerHTML = contentHtml;
 
-      // Click & Hold or Right Click for Action Menu
       let pressTimer = null;
       const triggerActionMenu = (e) => { e.preventDefault(); openActionMenu(msg.id, isMe); };
       bubbleEl.addEventListener('mousedown', (e) => { if (e.button === 2) { triggerActionMenu(e); return; } pressTimer = setTimeout(() => triggerActionMenu(e), 500); });
       bubbleEl.addEventListener('mouseup', () => clearTimeout(pressTimer));
-      bubbleEl.addEventListener('touchstart', () => { pressTimer = setTimeout(() => triggerActionMenu(event), 500); }, { passive: true });
-      bubbleEl.addEventListener('touchend', () => clearTimeout(pressTimer));
       bubbleEl.addEventListener('contextmenu', (e) => e.preventDefault());
 
       wrapper.innerHTML = `<span class="text-slate-400 text-[10px] mb-0.5 px-1">${isMe ? 'You' : msg.sender_name}</span>`;
@@ -557,7 +554,6 @@
       activeSelectedMsgId = msgId;
       const deleteEveryoneBtn = document.getElementById('deleteEveryoneBtn');
       const editBtn = document.getElementById('editMessageBtn');
-
       if (isMe) {
         deleteEveryoneBtn.classList.remove('hidden'); deleteEveryoneBtn.classList.add('flex');
         editBtn.classList.remove('hidden'); editBtn.classList.add('flex');
@@ -568,17 +564,8 @@
       document.getElementById('actionMenuModal').classList.remove('hidden');
     }
 
-    function closeActionMenu() {
-      document.getElementById('actionMenuModal').classList.add('hidden');
-      activeSelectedMsgId = null;
-    }
-
-    function copyActiveMessage() {
-      const msg = allLoadedMessages.find(m => m.id === activeSelectedMsgId);
-      if (msg) navigator.clipboard.writeText(decryptText(msg.message_text));
-      closeActionMenu();
-    }
-
+    function closeActionMenu() { document.getElementById('actionMenuModal').classList.add('hidden'); activeSelectedMsgId = null; }
+    function copyActiveMessage() { const msg = allLoadedMessages.find(m => m.id === activeSelectedMsgId); if (msg) navigator.clipboard.writeText(decryptText(msg.message_text)); closeActionMenu(); }
     function prepareEditActiveMessage() {
       const msg = allLoadedMessages.find(m => m.id === activeSelectedMsgId);
       if (msg) {
@@ -594,11 +581,9 @@
       if (!activeSelectedMsgId) return;
       const msgId = activeSelectedMsgId;
       closeActionMenu();
-
       deletedMessageIds.push(msgId);
       allLoadedMessages = allLoadedMessages.filter(m => m.id !== msgId);
       filterAndRenderMessages(false);
-
       if (scope === 'everyone' && navigator.onLine) {
         await supabaseClient.from('messages').delete().eq('id', msgId);
       }
@@ -625,7 +610,6 @@
       input.value = '';
 
       const cipherText = encryptText(text);
-
       if (editingMessageId) {
         const msgId = editingMessageId;
         editingMessageId = null;
@@ -660,7 +644,6 @@
         }
       }
 
-      // Offline handling
       newMessage.id = 'offline_' + Date.now();
       allLoadedMessages.push(newMessage);
       filterAndRenderMessages(true);
@@ -678,7 +661,6 @@
       if (!navigator.onLine) return;
       let queue = JSON.parse(localStorage.getItem('safetalk_offline_queue') || '[]');
       if (queue.length === 0) { updateSyncStatus(true); return; }
-
       for (let msg of queue) {
         const cleanMsg = { ...msg };
         delete cleanMsg.id;
@@ -702,7 +684,8 @@
     async function toggleVoiceRecording() {
       const bar = document.getElementById('voiceRecordingBar');
       if (mediaRecorder && mediaRecorder.state === 'recording') {
-        stopAndSendVoice();
+        mediaRecorder.stop();
+        bar.classList.add('hidden');
         return;
       }
       try {
@@ -712,34 +695,28 @@
         mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
         mediaRecorder.start();
         bar.classList.remove('hidden');
-      } catch (err) {}
-    }
-
-    function stopAndSendVoice() {
-      if (!mediaRecorder) return;
-      mediaRecorder.stop();
-      document.getElementById('voiceRecordingBar').classList.add('hidden');
-      mediaRecorder.onstop = async () => {
-        const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-        const reader = new FileReader();
-        reader.readAsDataURL(audioBlob);
-        reader.onloadend = async () => {
-          const base64Audio = reader.result;
-          const newMessage = {
-            sender_email: currentUser.email,
-            sender_name: familyMembers.find(m => m.email === currentUser.email)?.name || currentUser.email.split('@')[0],
-            message_text: base64Audio,
-            channel_type: currentChatType,
-            recipient_email: currentRecipientEmail,
-            group_id: currentGroupId,
-            expires_at: computeExpiryTimestamp(),
-            is_read: false,
-            created_at: new Date().toISOString()
+        mediaRecorder.onstop = async () => {
+          const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+          const reader = new FileReader();
+          reader.readAsDataURL(audioBlob);
+          reader.onloadend = async () => {
+            const base64Audio = reader.result;
+            const newMessage = {
+              sender_email: currentUser.email,
+              sender_name: familyMembers.find(m => m.email === currentUser.email)?.name || currentUser.email.split('@')[0],
+              message_text: base64Audio,
+              channel_type: currentChatType,
+              recipient_email: currentRecipientEmail,
+              group_id: currentGroupId,
+              expires_at: computeExpiryTimestamp(),
+              is_read: false,
+              created_at: new Date().toISOString()
+            };
+            const { data } = await supabaseClient.from('messages').insert([newMessage]).select();
+            if (data && data[0]) { allLoadedMessages.push(data[0]); filterAndRenderMessages(true); }
           };
-          const { data } = await supabaseClient.from('messages').insert([newMessage]).select();
-          if (data && data[0]) { allLoadedMessages.push(data[0]); filterAndRenderMessages(true); }
         };
-      };
+      } catch (err) {}
     }
 
     function openGroupCreateModal() {
