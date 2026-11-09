@@ -1,4 +1,4 @@
-<!-- 20261109 v21 -->
+<!-- 20261109 v22 -->
 <!-- try to add more function like PDF, URL and offline works, delete group -->
 <!-- try to Link Previews, Read Receipts, Online Presence, Attachment -->
 <!-- try to fix Timers, Action Menus, Emojis, Voice & Offline Sync) -->
@@ -294,9 +294,9 @@
       const { data: { session } } = await supabaseClient.auth.getSession();
       
       if (!session) {
-        const email = prompt("Enter your SafeTalk email (mum@family.com, dad@family.com, alex@family.com, sarah@family.com):", "mum@family.com");
+        const email = prompt("Enter your SafeTalk email");
         if (!email) return;
-        const password = prompt("Enter your password:", "123456");
+        const password = prompt("Enter your password:", "");
         if (!password) return;
 
         const { data, error } = await supabaseClient.auth.signInWithPassword({ email: email.trim().toLowerCase(), password });
