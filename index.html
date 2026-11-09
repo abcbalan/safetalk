@@ -1,8 +1,5 @@
-<!-- 20261109 v25 -->
-<!-- try to add more function like PDF, URL and offline works, delete group -->
-<!-- try to Link Previews, Read Receipts, Online Presence, Attachment -->
-<!-- try to fix Timers, Action Menus, Emojis, Voice & Offline Sync) -->
-
+<!-- 20261109 v26 -->
+<!-- Try to fix Function Nesting & iPhone Touch Hold -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -505,7 +502,7 @@
         .subscribe();
     }
 
-function startPollingEngine() {
+    function startPollingEngine() {
       if (pollInterval) clearInterval(pollInterval);
       pollInterval = setInterval(async () => {
         if (!navigator.onLine) return;
@@ -575,7 +572,7 @@ function startPollingEngine() {
       renderFilteredMessages(filtered, false);
     }
 
-function renderFilteredMessages(messages, forceScroll = false) {
+    function renderFilteredMessages(messages, forceScroll = false) {
       const chatContainer = document.getElementById('chatMessages');
       if (!chatContainer) return;
 
@@ -669,7 +666,7 @@ function renderFilteredMessages(messages, forceScroll = false) {
       let startY = 0;
 
       const triggerActionMenu = (e) => {
-        e.preventDefault();
+        if (e && e.cancelable) e.preventDefault();
         openActionMenu(msg.id, isMe);
       };
 
@@ -686,7 +683,7 @@ function renderFilteredMessages(messages, forceScroll = false) {
         pressTimer = setTimeout(() => {
           triggerActionMenu(e);
         }, 500);
-      }, { passive: true });
+      }, { passive: false });
 
       bubbleEl.addEventListener('touchmove', (e) => {
         const moveX = e.touches[0].clientX;
@@ -704,6 +701,7 @@ function renderFilteredMessages(messages, forceScroll = false) {
       `;
       wrapper.appendChild(bubbleEl);
       chatContainer.appendChild(wrapper);
+    }
 
     function openActionMenu(msgId, isMe) {
       activeSelectedMsgId = msgId;
