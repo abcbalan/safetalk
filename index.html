@@ -1,4 +1,4 @@
-<!-- 20261109 v22 -->
+<!-- 20261109 v23 -->
 <!-- try to add more function like PDF, URL and offline works, delete group -->
 <!-- try to Link Previews, Read Receipts, Online Presence, Attachment -->
 <!-- try to fix Timers, Action Menus, Emojis, Voice & Offline Sync) -->
@@ -575,11 +575,22 @@ function startPollingEngine() {
       renderFilteredMessages(filtered, false);
     }
 
-    function renderFilteredMessages(messages, forceScroll = false) {
+function renderFilteredMessages(messages, forceScroll = false) {
       const chatContainer = document.getElementById('chatMessages');
+      if (!chatContainer) return;
+
+      const previousScrollTop = chatContainer.scrollTop;
+      const previousScrollHeight = chatContainer.scrollHeight;
+
       chatContainer.innerHTML = '';
       messages.forEach(msg => renderSingleMessage(msg));
-      if (shouldAutoScroll || forceScroll) scrollToBottom();
+      
+      if (forceScroll || shouldAutoScroll) {
+        scrollToBottom();
+      } else {
+        const heightDiff = chatContainer.scrollHeight - previousScrollHeight;
+        chatContainer.scrollTop = previousScrollTop + heightDiff;
+      }
     }
 
     document.addEventListener('DOMContentLoaded', () => {
